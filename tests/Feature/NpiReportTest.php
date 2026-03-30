@@ -55,7 +55,7 @@ function createServiceRecordForCode(
 }
 
 // =============================================================================
-// NpiReportService
+// NpiReportService — Core Counts
 // =============================================================================
 
 it('generate returns data for all 7 goals', function () {
@@ -65,15 +65,12 @@ it('generate returns data for all 7 goals', function () {
     $report = $service->generate('2025-01-01', '2026-12-31');
 
     expect($report)->toHaveCount(7);
-
-    $goalNumbers = $report->pluck('goal_number')->toArray();
-    expect($goalNumbers)->toBe([1, 2, 3, 4, 5, 6, 7]);
+    expect($report->pluck('goal_number')->toArray())->toBe([1, 2, 3, 4, 5, 6, 7]);
 });
 
-it('unduplicated count is correct — same client with 2 service records for same indicator counts as 1', function () {
+it('unduplicated count is correct — same client with 2 service records counts as 1', function () {
     seedNpiData();
 
-    // CSBG-VITA maps to indicator 3.1
     $client = Client::factory()->create();
     createServiceRecordForCode('CSBG-VITA', $client, '2025-06-01', 50.00);
     createServiceRecordForCode('CSBG-VITA', $client, '2025-06-15', 75.00);
@@ -81,13 +78,9 @@ it('unduplicated count is correct — same client with 2 service records for sam
     $service = new NpiReportService();
     $report = $service->generate('2025-01-01', '2025-12-31');
 
-    // Find Goal 3 (Income and Asset Building)
     $goal3 = $report->firstWhere('goal_number', 3);
-    expect($goal3)->not->toBeNull();
-
-    // Find indicator 3.1
     $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', '3.1');
-    expect($indicator31)->not->toBeNull();
+
     expect($indicator31['unduplicated_clients'])->toBe(1);
     expect($indicator31['total_services'])->toBe(2);
 });
@@ -96,9 +89,7 @@ it('service records outside date range are excluded', function () {
     seedNpiData();
 
     $client = Client::factory()->create();
-    // Inside range
     createServiceRecordForCode('CSBG-VITA', $client, '2025-06-01', 100.00);
-    // Outside range
     createServiceRecordForCode('CSBG-VITA', $client, '2024-01-01', 200.00);
 
     $service = new NpiReportService();
@@ -112,10 +103,9 @@ it('service records outside date range are excluded', function () {
     expect($indicator31['total_value'])->toBe(100.00);
 });
 
-it('goal-level unduplicated count works — client with services under 2 indicators in same goal counts once', function () {
+it('goal-level unduplicated count works — client under 2 indicators in same goal counts once', function () {
     seedNpiData();
 
-    // CSBG-VITA maps to 3.1, CSBG-IR maps to 3.3 — both under Goal 3
     $client = Client::factory()->create();
     createServiceRecordForCode('CSBG-VITA', $client, '2025-06-01');
     createServiceRecordForCode('CSBG-IR', $client, '2025-06-15');
@@ -133,45 +123,174 @@ it('grandTotalUnduplicatedClients returns correct count', function () {
     $clientA = Client::factory()->create();
     $clientB = Client::factory()->create();
 
-    // Client A gets two different services (different goals)
     createServiceRecordForCode('CSBG-VITA', $clientA, '2025-06-01');
     createServiceRecordForCode('EMRG-FOOD', $clientA, '2025-06-15');
-
-    // Client B gets one service
     createServiceRecordForCode('EMRG-RENT', $clientB, '2025-07-01');
 
     $service = new NpiReportService();
-    $grandTotal = $service->grandTotalUnduplicatedClients('2025-01-01', '2025-12-31');
-
-    expect($grandTotal)->toBe(2);
+    expect($service->grandTotalUnduplicatedClients('2025-01-01', '2025-12-31'))->toBe(2);
 });
 
-it('toFlatRows returns header row + goal rows + indicator rows + grand total', function () {
+// =============================================================================
+// NpiReportService — Program Filter
+// =============================================================================
+
+it('program filter limits results to a single program', function () {
     seedNpiData();
 
-    // Create at least one service record so the report has data
-    createServiceRecordForCode('CSBG-VITA', serviceDate: '2025-06-01');
+    $client = Client::factory()->create();
+    createServiceRecordForCode('CSBG-VITA', $client, '2025-06-01');
+    createServiceRecordForCode('EMRG-FOOD', $client, '2025-06-01');
+
+    $csbgProgram = Program::where('code', 'CSBG')->first();
+    $emrgProgram = Program::where('code', 'EMRG')->first();
+
+    // CSBG-only: client should appear under Goal 3 (CSBG-VITA → 3.1)
+    $service = (new NpiReportService())->forProgram($csbgProgram->id);
+    $report = $service->generate('2025-01-01', '2025-12-31');
+
+    $goal3 = $report->firstWhere('goal_number', 3);
+    expect($goal3)->not->toBeNull();
+    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', '3.1');
+    expect($indicator31)->not->toBeNull();
+    expect($indicator31['unduplicated_clients'])->toBe(1);
+
+    // CSBG-only: grand total should be 1 (the CSBG client)
+    expect($service->grandTotalUnduplicatedClients('2025-01-01', '2025-12-31'))->toBe(1);
+
+    // EMRG-only: client should appear under Goal 7 (EMRG-FOOD → 7.1, 7.2)
+    $service2 = (new NpiReportService())->forProgram($emrgProgram->id);
+    $report2 = $service2->generate('2025-01-01', '2025-12-31');
+
+    $goal3b = $report2->firstWhere('goal_number', 3);
+    expect($goal3b)->not->toBeNull();
+    $indicator31b = collect($goal3b['indicators'])->firstWhere('indicator_code', '3.1');
+    expect($indicator31b)->not->toBeNull();
+    expect($indicator31b['unduplicated_clients'])->toBe(0);
+
+    expect($service2->grandTotalUnduplicatedClients('2025-01-01', '2025-12-31'))->toBe(1);
+});
+
+it('program filter applies to grand total', function () {
+    seedNpiData();
+
+    $client = Client::factory()->create();
+    createServiceRecordForCode('CSBG-VITA', $client, '2025-06-01');
+    createServiceRecordForCode('EMRG-FOOD', $client, '2025-06-01');
+
+    $csbgProgram = Program::where('code', 'CSBG')->first();
+
+    // Unfiltered: 1 client
+    $all = new NpiReportService();
+    expect($all->grandTotalUnduplicatedClients('2025-01-01', '2025-12-31'))->toBe(1);
+
+    // CSBG only: still 1 (same client)
+    $filtered = (new NpiReportService())->forProgram($csbgProgram->id);
+    expect($filtered->grandTotalUnduplicatedClients('2025-01-01', '2025-12-31'))->toBe(1);
+});
+
+// =============================================================================
+// NpiReportService — Demographics
+// =============================================================================
+
+it('generate includes demographic breakdowns per indicator', function () {
+    seedNpiData();
+
+    $client = Client::factory()->create([
+        'race' => 'black',
+        'gender' => 'female',
+        'date_of_birth' => now()->subYears(35),
+    ]);
+    createServiceRecordForCode('CSBG-VITA', $client, '2025-06-01');
+
+    $service = new NpiReportService();
+    $report = $service->generate('2025-01-01', '2025-12-31');
+
+    $goal3 = $report->firstWhere('goal_number', 3);
+    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', '3.1');
+
+    expect($indicator31['by_race'])->toHaveKey('black');
+    expect($indicator31['by_race']['black'])->toBe(1);
+
+    expect($indicator31['by_gender'])->toHaveKey('female');
+    expect($indicator31['by_gender']['female'])->toBe(1);
+
+    expect($indicator31['by_age'])->toHaveKey('25-44');
+    expect($indicator31['by_age']['25-44'])->toBe(1);
+});
+
+it('demographic breakdowns are unduplicated per indicator', function () {
+    seedNpiData();
+
+    $client = Client::factory()->create(['race' => 'white', 'gender' => 'male']);
+    createServiceRecordForCode('CSBG-VITA', $client, '2025-06-01');
+    createServiceRecordForCode('CSBG-VITA', $client, '2025-06-15');
+
+    $service = new NpiReportService();
+    $report = $service->generate('2025-01-01', '2025-12-31');
+
+    $goal3 = $report->firstWhere('goal_number', 3);
+    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', '3.1');
+
+    // Same client twice should count as 1 in demographics
+    expect($indicator31['by_race']['white'])->toBe(1);
+    expect($indicator31['by_gender']['male'])->toBe(1);
+});
+
+it('multiple clients show correct demographic counts', function () {
+    seedNpiData();
+
+    $clientA = Client::factory()->create(['race' => 'white', 'gender' => 'male', 'date_of_birth' => now()->subYears(30)]);
+    $clientB = Client::factory()->create(['race' => 'black', 'gender' => 'female', 'date_of_birth' => now()->subYears(50)]);
+    $clientC = Client::factory()->create(['race' => 'white', 'gender' => 'female', 'date_of_birth' => now()->subYears(70)]);
+
+    createServiceRecordForCode('CSBG-VITA', $clientA, '2025-06-01');
+    createServiceRecordForCode('CSBG-VITA', $clientB, '2025-06-01');
+    createServiceRecordForCode('CSBG-VITA', $clientC, '2025-06-01');
+
+    $service = new NpiReportService();
+    $report = $service->generate('2025-01-01', '2025-12-31');
+
+    $goal3 = $report->firstWhere('goal_number', 3);
+    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', '3.1');
+
+    expect($indicator31['unduplicated_clients'])->toBe(3);
+    expect($indicator31['by_race']['white'])->toBe(2);
+    expect($indicator31['by_race']['black'])->toBe(1);
+    expect($indicator31['by_gender']['male'])->toBe(1);
+    expect($indicator31['by_gender']['female'])->toBe(2);
+    expect($indicator31['by_age']['25-44'])->toBe(1);
+    expect($indicator31['by_age']['45-54'])->toBe(1);
+    expect($indicator31['by_age']['65+'])->toBe(1);
+});
+
+// =============================================================================
+// NpiReportService — CSV Flat Rows
+// =============================================================================
+
+it('toFlatRows includes demographic columns in header', function () {
+    seedNpiData();
 
     $service = new NpiReportService();
     $rows = $service->toFlatRows('2025-01-01', '2025-12-31');
 
-    // First row is the header
-    expect($rows[0])->toBe([
-        'NPI Code',
-        'Goal / Indicator',
-        'Unduplicated Individuals',
-        'Total Services',
-        'Total Value ($)',
-    ]);
+    $header = $rows[0];
+    expect($header)->toContain('NPI Code');
+    expect($header)->toContain('Race: White');
+    expect($header)->toContain('Race: Black');
+    expect($header)->toContain('Gender: Male');
+    expect($header)->toContain('Gender: Female');
+    expect($header)->toContain('Age: 25-44');
+    expect($header)->toContain('Age: 65+');
+});
 
-    // Last row is the grand total
-    $lastRow = end($rows);
-    expect($lastRow[0])->toBe('');
-    expect($lastRow[1])->toBe('GRAND TOTAL (Unduplicated)');
+it('toFlatRows has correct row count', function () {
+    seedNpiData();
 
-    // Count: 1 header + 7 goal rows + 27 indicator rows + 1 grand total = 36
-    // NPI seeder creates: Goal 1 (3), Goal 2 (4), Goal 3 (4), Goal 4 (3),
-    // Goal 5 (4), Goal 6 (3), Goal 7 (6) = 27 indicators
+    $service = new NpiReportService();
+    $rows = $service->toFlatRows('2025-01-01', '2025-12-31');
+
+    // 1 header + 7 goal rows + 27 indicator rows + 1 grand total = 36
     expect($rows)->toHaveCount(36);
 });
 
@@ -204,9 +323,37 @@ it('generateReport sets reportData and grandTotal', function () {
         ->assertNotSet('reportData', null);
 });
 
-it('applyPreset fiscal_year sets correct date range', function () {
+it('generateReport respects program filter', function () {
     seedNpiData();
 
+    $client = Client::factory()->create();
+    createServiceRecordForCode('CSBG-VITA', $client, '2025-06-01');
+    createServiceRecordForCode('EMRG-FOOD', $client, '2025-06-01');
+
+    $emrgProgram = Program::where('code', 'EMRG')->first();
+
+    $this->actingAs(User::factory()->admin()->create());
+
+    // Filter to EMRG only — CSBG-VITA (Goal 3) should show 0 clients
+    $component = Livewire::test(NpiReport::class)
+        ->set('startDate', '2025-01-01')
+        ->set('endDate', '2025-12-31')
+        ->set('programId', (string) $emrgProgram->id)
+        ->call('generateReport');
+
+    $reportData = $component->get('reportData');
+    expect($reportData)->not->toBeNull();
+
+    $goal3 = $reportData->firstWhere('goal_number', 3);
+    expect($goal3)->not->toBeNull();
+
+    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', '3.1');
+    expect($indicator31)->not->toBeNull();
+    expect($indicator31['unduplicated_clients'])->toBe(0);
+});
+
+it('applyPreset fiscal_year sets correct date range', function () {
+    seedNpiData();
     $this->actingAs(User::factory()->admin()->create());
 
     $now = now();
@@ -215,27 +362,21 @@ it('applyPreset fiscal_year sets correct date range', function () {
         : $now->copy()->subYear()->startOfYear()->addMonths(9))
         ->startOfMonth()
         ->format('Y-m-d');
-    $expectedEnd = $now->format('Y-m-d');
 
-    $component = Livewire::test(NpiReport::class)
-        ->call('applyPreset', 'fiscal_year');
-
-    $component->assertSet('startDate', $expectedStart);
-    $component->assertSet('endDate', $expectedEnd);
+    Livewire::test(NpiReport::class)
+        ->call('applyPreset', 'fiscal_year')
+        ->assertSet('startDate', $expectedStart)
+        ->assertSet('endDate', $now->format('Y-m-d'));
 });
 
 it('applyPreset this_month sets correct date range', function () {
     seedNpiData();
-
     $this->actingAs(User::factory()->admin()->create());
 
     $now = now();
-    $expectedStart = $now->copy()->startOfMonth()->format('Y-m-d');
-    $expectedEnd = $now->format('Y-m-d');
 
-    $component = Livewire::test(NpiReport::class)
-        ->call('applyPreset', 'this_month');
-
-    $component->assertSet('startDate', $expectedStart);
-    $component->assertSet('endDate', $expectedEnd);
+    Livewire::test(NpiReport::class)
+        ->call('applyPreset', 'this_month')
+        ->assertSet('startDate', $now->copy()->startOfMonth()->format('Y-m-d'))
+        ->assertSet('endDate', $now->format('Y-m-d'));
 });

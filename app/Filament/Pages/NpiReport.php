@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Pages;
 
 use App\Exports\NpiReportCsvExport;
+use App\Models\Program;
 use App\Services\NpiReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Forms\Components\DatePicker;
@@ -14,7 +15,6 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Collection;
-use Illuminate\Support\HtmlString;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -39,6 +39,8 @@ class NpiReport extends Page
 
     public ?string $preset = 'fiscal_year';
 
+    public ?string $programId = null;
+
     public ?Collection $reportData = null;
 
     public ?int $grandTotal = null;
@@ -58,7 +60,7 @@ class NpiReport extends Page
                         Select::make('preset')
                             ->label('Quick Select')
                             ->options([
-                                'fiscal_year' => 'Current Fiscal Year (Oct–Sep)',
+                                'fiscal_year' => 'Current Fiscal Year (Oct-Sep)',
                                 'calendar_year' => 'Current Calendar Year',
                                 'last_quarter' => 'Last Quarter',
                                 'this_quarter' => 'This Quarter',
@@ -81,8 +83,17 @@ class NpiReport extends Page
                             ->required()
                             ->native(false)
                             ->displayFormat('m/d/Y'),
+
+                        Select::make('programId')
+                            ->label('Program')
+                            ->options(fn (): array => array_merge(
+                                ['' => 'All Programs'],
+                                Program::active()->orderBy('name')->pluck('name', 'id')->toArray(),
+                            ))
+                            ->default('')
+                            ->placeholder('All Programs'),
                     ])
-                    ->columns(3),
+                    ->columns(4),
             ]);
     }
 
@@ -122,6 +133,17 @@ class NpiReport extends Page
         $this->grandTotal = null;
     }
 
+    protected function makeService(): NpiReportService
+    {
+        $service = new NpiReportService();
+
+        if (! empty($this->programId)) {
+            $service->forProgram((int) $this->programId);
+        }
+
+        return $service;
+    }
+
     public function generateReport(): void
     {
         if (! $this->startDate || ! $this->endDate) {
@@ -130,28 +152,37 @@ class NpiReport extends Page
             return;
         }
 
-        $service = new NpiReportService();
+        $service = $this->makeService();
         $this->reportData = $service->generate($this->startDate, $this->endDate);
         $this->grandTotal = $service->grandTotalUnduplicatedClients($this->startDate, $this->endDate);
+
+        $programLabel = $this->programId
+            ? Program::find($this->programId)?->name ?? 'Unknown'
+            : 'All Programs';
 
         Notification::make()
             ->success()
             ->title('Report generated')
-            ->body('Showing data for ' . $this->startDate . ' to ' . $this->endDate)
+            ->body("{$this->startDate} to {$this->endDate} — {$programLabel}")
             ->send();
     }
 
     public function exportPdf(): StreamedResponse
     {
-        $service = new NpiReportService();
+        $service = $this->makeService();
         $report = $service->generate($this->startDate, $this->endDate);
         $grandTotal = $service->grandTotalUnduplicatedClients($this->startDate, $this->endDate);
+
+        $programLabel = $this->programId
+            ? Program::find($this->programId)?->name
+            : null;
 
         $pdf = Pdf::loadView('reports.npi-report-pdf', [
             'report' => $report,
             'grandTotal' => $grandTotal,
             'startDate' => $this->startDate,
             'endDate' => $this->endDate,
+            'programLabel' => $programLabel,
         ])->setPaper('letter', 'landscape');
 
         $filename = 'npi-report-' . $this->startDate . '-to-' . $this->endDate . '.pdf';
@@ -167,8 +198,10 @@ class NpiReport extends Page
     {
         $filename = 'npi-report-' . $this->startDate . '-to-' . $this->endDate . '.xlsx';
 
+        $programIdInt = ! empty($this->programId) ? (int) $this->programId : null;
+
         return Excel::download(
-            new NpiReportCsvExport($this->startDate, $this->endDate),
+            new NpiReportCsvExport($this->startDate, $this->endDate, $programIdInt),
             $filename,
         );
     }

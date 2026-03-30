@@ -6,7 +6,6 @@ namespace App\Exports;
 
 use App\Services\NpiReportService;
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -16,21 +15,24 @@ class NpiReportCsvExport implements FromArray, WithTitle, WithStyles
     public function __construct(
         protected string $startDate,
         protected string $endDate,
+        protected ?int $programId = null,
     ) {}
 
     public function array(): array
     {
         $service = new NpiReportService();
 
+        if ($this->programId) {
+            $service->forProgram($this->programId);
+        }
+
         $rows = [];
 
-        // Title rows
         $rows[] = ['CSBG National Performance Indicators Report'];
         $rows[] = ['Reporting Period: ' . $this->startDate . ' to ' . $this->endDate];
         $rows[] = ['Generated: ' . now()->format('m/d/Y h:i A')];
         $rows[] = [];
 
-        // Data rows from service
         $dataRows = $service->toFlatRows($this->startDate, $this->endDate);
         foreach ($dataRows as $row) {
             $rows[] = $row;
