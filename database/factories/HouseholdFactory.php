@@ -20,7 +20,7 @@ class HouseholdFactory extends Factory
             'state' => fake()->stateAbbr(),
             'zip' => fake()->postcode(),
             'county' => fake()->optional(0.8)->city() . ' County',
-            'housing_type' => fake()->randomElement(['own', 'rent', 'homeless', 'transitional', 'other']),
+            'housing_type' => fake()->randomElement(['owned', 'rented', 'shelter', 'homeless', 'transitional', 'other']),
             'household_size' => fake()->numberBetween(1, 6),
         ];
     }
