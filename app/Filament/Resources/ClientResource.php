@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Enums\IntakeStatus;
 use App\Filament\Resources\ClientResource\Pages;
 use App\Filament\Resources\ClientResource\RelationManagers;
 use App\Models\Client;
 use App\Models\Household;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -241,6 +243,11 @@ class ClientResource extends Resource
             RelationManagers\ServiceRecordsRelationManager::class,
             RelationManagers\IncomeRecordsRelationManager::class,
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->where('intake_status', IntakeStatus::Complete);
     }
 
     public static function getPages(): array

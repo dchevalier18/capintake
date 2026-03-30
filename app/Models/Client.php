@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\IntakeStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,6 +35,8 @@ class Client extends Model
         'preferred_language',
         'relationship_to_head',
         'notes',
+        'intake_status',
+        'intake_step',
     ];
 
     protected function casts(): array
@@ -44,6 +47,8 @@ class Client extends Model
             'is_veteran' => 'boolean',
             'is_disabled' => 'boolean',
             'is_head_of_household' => 'boolean',
+            'intake_status' => IntakeStatus::class,
+            'intake_step' => 'integer',
         ];
     }
 
@@ -72,6 +77,18 @@ class Client extends Model
     public function activeEnrollments(): HasMany
     {
         return $this->enrollments()->where('status', 'active');
+    }
+
+    // --- Scopes ---
+
+    public function scopeComplete($query)
+    {
+        return $query->where('intake_status', IntakeStatus::Complete);
+    }
+
+    public function scopeDraft($query)
+    {
+        return $query->where('intake_status', IntakeStatus::Draft);
     }
 
     // --- Helpers ---
