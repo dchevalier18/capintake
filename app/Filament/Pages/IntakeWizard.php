@@ -47,7 +47,7 @@ class IntakeWizard extends Page
 
     protected static string|\UnitEnum|null $navigationGroup = 'Client Management';
 
-    protected static ?int $navigationSort = 0;
+    protected static ?int $navigationSort = 2;
 
     public ?array $data = [];
 
@@ -718,15 +718,29 @@ class IntakeWizard extends Page
                                     ? '***-**-' . substr(preg_replace('/\D/', '', $d['ssn_encrypted']), -4)
                                     : 'Not provided';
 
+                                $raceLabels = [
+                                    'white' => 'White', 'black' => 'Black or African American',
+                                    'asian' => 'Asian', 'native_american' => 'American Indian or Alaska Native',
+                                    'pacific_islander' => 'Native Hawaiian or Pacific Islander',
+                                    'multi_racial' => 'Two or More Races', 'other' => 'Other',
+                                ];
+                                $ethnicityLabels = [
+                                    'hispanic' => 'Hispanic or Latino',
+                                    'not_hispanic' => 'Not Hispanic or Latino',
+                                ];
+                                $dobFormatted = ! empty($d['date_of_birth'])
+                                    ? date('m/d/Y', strtotime($d['date_of_birth']))
+                                    : 'N/A';
+
                                 $rows = [
                                     'Name' => e($name),
-                                    'Date of Birth' => $d['date_of_birth'] ?? 'N/A',
+                                    'Date of Birth' => $dobFormatted,
                                     'SSN' => $ssn,
                                     'Phone' => e($d['phone'] ?? 'N/A'),
                                     'Email' => e($d['email'] ?? 'N/A'),
                                     'Gender' => ucfirst(str_replace('_', ' ', $d['gender'] ?? 'N/A')),
-                                    'Race' => ucfirst(str_replace('_', ' ', $d['race'] ?? 'N/A')),
-                                    'Ethnicity' => ucfirst(str_replace('_', ' ', $d['ethnicity'] ?? 'N/A')),
+                                    'Race' => $raceLabels[$d['race'] ?? ''] ?? 'N/A',
+                                    'Ethnicity' => $ethnicityLabels[$d['ethnicity'] ?? ''] ?? 'N/A',
                                     'Veteran' => ($d['is_veteran'] ?? false) ? 'Yes' : 'No',
                                     'Disabled' => ($d['is_disabled'] ?? false) ? 'Yes' : 'No',
                                 ];
@@ -802,8 +816,14 @@ class IntakeWizard extends Page
                                         $freq = $inc['frequency'] ?? null;
                                         $annual = $freq ? $amount * IncomeFrequency::from($freq)->annualMultiplier() : $amount;
 
+                                        $sourceLabels = [
+                                            'employment' => 'Employment', 'ssi' => 'SSI', 'ssdi' => 'SSDI',
+                                            'tanf' => 'TANF', 'snap' => 'SNAP', 'child_support' => 'Child Support',
+                                            'pension' => 'Pension', 'unemployment' => 'Unemployment',
+                                            'self_employment' => 'Self-Employment', 'other' => 'Other',
+                                        ];
                                         $html .= '<tr class="border-b border-gray-100">'
-                                            . '<td class="py-1">' . e(ucfirst(str_replace('_', ' ', $inc['source'] ?? ''))) . '</td>'
+                                            . '<td class="py-1">' . e($sourceLabels[$inc['source'] ?? ''] ?? ucfirst($inc['source'] ?? '')) . '</td>'
                                             . '<td class="text-right py-1">$' . number_format($amount, 2) . '</td>'
                                             . '<td class="py-1 pl-3">' . e($freq ? IncomeFrequency::from($freq)->label() : 'N/A') . '</td>'
                                             . '<td class="text-right py-1">$' . number_format($annual, 2) . '</td>'
@@ -1033,6 +1053,11 @@ class IntakeWizard extends Page
         $data = $this->data;
         $client = Client::find($this->clientId);
 
+        if (! $client) {
+            $this->saveDraftStep1();
+            $client = Client::find($this->clientId);
+        }
+
         DB::transaction(function () use ($data, $client): void {
             // Handle household mode switch
             if (($data['household_mode'] ?? 'new') === 'existing' && ! empty($data['existing_household_id'])) {
@@ -1185,6 +1210,24 @@ class IntakeWizard extends Page
         $client->enrollments()
             ->where('status', EnrollmentStatus::Pending)
             ->update(['status' => EnrollmentStatus::Active->value]);
+
+        // Clean up any other orphaned draft clients (e.g., from abandoned duplicate tests)
+        $orphanedDrafts = Client::draft()
+            ->where('id', '!=', $client->id)
+            ->where('first_name', $client->first_name)
+            ->where('last_name', $client->last_name)
+            ->get();
+
+        foreach ($orphanedDrafts as $orphan) {
+            $orphanHousehold = $orphan->household;
+            $orphan->enrollments()->forceDelete();
+            $orphan->incomeRecords()->forceDelete();
+            $orphan->forceDelete();
+            if ($orphanHousehold && $orphanHousehold->clients()->count() === 0) {
+                $orphanHousehold->members()->forceDelete();
+                $orphanHousehold->forceDelete();
+            }
+        }
 
         Notification::make()
             ->success()
