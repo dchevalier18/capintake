@@ -20,6 +20,9 @@ class DatabaseSeeder extends Seeder
 
             // NPI-to-Service mapping (depends on NPI + Programs)
             NpiServiceMappingSeeder::class,
+
+            // Default admin user
+            AdminUserSeeder::class,
         ]);
     }
 }
