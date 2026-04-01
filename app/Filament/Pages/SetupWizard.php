@@ -78,7 +78,8 @@ class SetupWizard extends Page
             'programs' => $programs->map(fn (Program $p) => [
                 'program_id' => $p->id,
                 'program_name' => $p->name,
-                'is_active' => true,
+                'program_code' => $p->code,
+                'is_active' => $p->is_active,
             ])->toArray(),
         ]);
     }
@@ -230,7 +231,7 @@ class SetupWizard extends Page
             ->description('Review and configure available programs')
             ->schema([
                 Placeholder::make('programs_info')
-                    ->content('These programs were pre-configured during installation. You can rename or deactivate programs that your agency does not use.')
+                    ->content('These programs were pre-configured during installation. You can rename, deactivate, remove, or add programs as needed.')
                     ->columnSpanFull(),
 
                 Repeater::make('programs')
@@ -242,13 +243,18 @@ class SetupWizard extends Page
                             ->label('Program Name')
                             ->required(),
 
+                        TextInput::make('program_code')
+                            ->label('Code')
+                            ->maxLength(10)
+                            ->placeholder('e.g., CSBG'),
+
                         Toggle::make('is_active')
                             ->label('Active')
                             ->default(true),
                     ])
-                    ->columns(2)
-                    ->addable(false)
-                    ->deletable(false)
+                    ->columns(3)
+                    ->addActionLabel('Add Program')
+                    ->defaultItems(0)
                     ->reorderable(false)
                     ->columnSpanFull(),
             ]);
@@ -328,16 +334,42 @@ class SetupWizard extends Page
             auth()->login($user);
         }
 
-        // Update program names/status
+        // Sync programs: update existing, create new, deactivate removed
         if (!empty($data['programs'])) {
+            $submittedIds = [];
+
             foreach ($data['programs'] as $programData) {
                 if (!empty($programData['program_id'])) {
+                    // Update existing program
                     Program::where('id', $programData['program_id'])->update([
                         'name' => $programData['program_name'],
                         'is_active' => $programData['is_active'] ?? true,
                     ]);
+                    $submittedIds[] = $programData['program_id'];
+                } else {
+                    // Create new program
+                    $code = strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $programData['program_code'] ?? $programData['program_name']), 0, 10));
+                    $code = $code ?: 'PROG' . random_int(100, 999);
+
+                    // Ensure unique code
+                    $baseCode = $code;
+                    $suffix = 2;
+                    while (Program::where('code', $code)->exists()) {
+                        $code = substr($baseCode, 0, 7) . $suffix;
+                        $suffix++;
+                    }
+
+                    $program = Program::create([
+                        'name' => $programData['program_name'],
+                        'code' => $code,
+                        'is_active' => $programData['is_active'] ?? true,
+                    ]);
+                    $submittedIds[] = $program->id;
                 }
             }
+
+            // Deactivate seeded programs that were removed from the list
+            Program::whereNotIn('id', $submittedIds)->update(['is_active' => false]);
         }
 
         Notification::make()
