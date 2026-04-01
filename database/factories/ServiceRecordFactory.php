@@ -17,11 +17,17 @@ class ServiceRecordFactory extends Factory
 
     public function definition(): array
     {
+        $client = Client::factory()->create();
+        $caseworker = User::factory()->caseworker()->create();
+
         return [
-            'client_id' => Client::factory(),
+            'client_id' => $client->id,
             'service_id' => Service::factory(),
-            'enrollment_id' => Enrollment::factory(),
-            'provided_by' => User::factory()->caseworker(),
+            'enrollment_id' => Enrollment::factory()->state([
+                'client_id' => $client->id,
+                'caseworker_id' => $caseworker->id,
+            ]),
+            'provided_by' => $caseworker->id,
             'service_date' => fake()->dateTimeBetween('-6 months', 'now'),
             'quantity' => fake()->randomFloat(2, 1, 10),
             'value' => fake()->optional(0.5)->randomFloat(2, 25, 500),

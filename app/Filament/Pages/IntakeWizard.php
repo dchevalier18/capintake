@@ -315,7 +315,13 @@ class IntakeWizard extends Page
                         Checkbox::make('acknowledge_duplicates')
                             ->label('I have reviewed the potential duplicates above and confirm this is a new client')
                             ->visible(fn (): bool => $this->duplicateWarning !== null)
-                            ->accepted(fn (): bool => $this->duplicateWarning !== null),
+                            ->accepted(fn (): bool => $this->duplicateWarning !== null)
+                            ->live()
+                            ->afterStateUpdated(function (bool $state): void {
+                                if ($state) {
+                                    $this->resetValidation('data.acknowledge_duplicates');
+                                }
+                            }),
                     ])
                     ->hidden(fn (): bool => $this->duplicateWarning === null),
             ])
@@ -985,6 +991,20 @@ class IntakeWizard extends Page
         $data = $this->data;
 
         DB::transaction(function () use ($data): void {
+            // If we don't have a clientId, check for an existing draft with the
+            // same name+DOB to prevent duplicate drafts from page reloads.
+            if (! $this->clientId) {
+                $existingDraft = Client::draft()
+                    ->where('first_name', $data['first_name'])
+                    ->where('last_name', $data['last_name'])
+                    ->whereDate('date_of_birth', $data['date_of_birth'] ?? '')
+                    ->first();
+
+                if ($existingDraft) {
+                    $this->clientId = $existingDraft->id;
+                }
+            }
+
             if ($this->clientId) {
                 $client = Client::find($this->clientId);
                 $household = $client->household;
@@ -1046,6 +1066,13 @@ class IntakeWizard extends Page
                 $this->clientId = $client->id;
             }
         });
+
+        // Update the browser URL so a page refresh preserves the draft context
+        $this->js("
+            const url = new URL(window.location);
+            url.searchParams.set('client', {$this->clientId});
+            window.history.replaceState({}, '', url);
+        ");
     }
 
     protected function saveDraftStep2(): void

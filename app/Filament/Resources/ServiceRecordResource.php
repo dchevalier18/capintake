@@ -66,7 +66,14 @@ class ServiceRecordResource extends Resource
 
                         Select::make('enrollment_id')
                             ->label('Enrollment')
-                            ->relationship('enrollment', 'id')
+                            ->relationship(
+                                'enrollment',
+                                'id',
+                                fn ($query, Get $get) => $query->when(
+                                    $get('client_id'),
+                                    fn ($q, $clientId) => $q->where('client_id', $clientId),
+                                ),
+                            )
                             ->getOptionLabelFromRecordUsing(fn (Enrollment $record): string => "#{$record->id} - {$record->program->name} ({$record->status->label()})")
                             ->searchable()
                             ->preload(),
