@@ -888,10 +888,9 @@ class IntakeWizard extends Page
         $data = $this->data;
         $firstName = $data['first_name'] ?? '';
         $lastName = $data['last_name'] ?? '';
-        $dob = $data['date_of_birth'] ?? '';
 
         // Only check when we have enough data
-        if (strlen($firstName) < 2 || strlen($lastName) < 2 || empty($dob)) {
+        if (strlen($firstName) < 2 || strlen($lastName) < 2) {
             $this->duplicateWarning = null;
 
             return;
@@ -903,11 +902,11 @@ class IntakeWizard extends Page
             $query->where('id', '!=', $this->clientId);
         }
 
-        $duplicates = $query->where(function ($q) use ($firstName, $lastName, $dob): void {
-            $q->where(function ($sub) use ($firstName, $lastName, $dob): void {
+        $duplicates = $query->where(function ($q) use ($firstName, $lastName): void {
+            // Name match (DOB is encrypted and cannot be queried directly)
+            $q->where(function ($sub) use ($firstName, $lastName): void {
                 $sub->whereRaw('LOWER(first_name) = ?', [strtolower($firstName)])
-                    ->whereRaw('LOWER(last_name) = ?', [strtolower($lastName)])
-                    ->whereDate('date_of_birth', $dob);
+                    ->whereRaw('LOWER(last_name) = ?', [strtolower($lastName)]);
             });
 
             $ssn = $this->data['ssn_encrypted'] ?? '';
@@ -943,10 +942,10 @@ class IntakeWizard extends Page
         }
 
         $duplicates = $query->where(function ($q) use ($data): void {
+            // Name match (DOB is encrypted and cannot be queried directly)
             $q->where(function ($sub) use ($data): void {
                 $sub->whereRaw('LOWER(first_name) = ?', [strtolower($data['first_name'] ?? '')])
-                    ->whereRaw('LOWER(last_name) = ?', [strtolower($data['last_name'] ?? '')])
-                    ->whereDate('date_of_birth', $data['date_of_birth'] ?? '');
+                    ->whereRaw('LOWER(last_name) = ?', [strtolower($data['last_name'] ?? '')]);
             });
 
             $ssn = $data['ssn_encrypted'] ?? '';
@@ -994,10 +993,10 @@ class IntakeWizard extends Page
             // If we don't have a clientId, check for an existing draft with the
             // same name+DOB to prevent duplicate drafts from page reloads.
             if (! $this->clientId) {
+                // Match on name only — DOB is encrypted and cannot be queried
                 $existingDraft = Client::draft()
                     ->where('first_name', $data['first_name'])
                     ->where('last_name', $data['last_name'])
-                    ->whereDate('date_of_birth', $data['date_of_birth'] ?? '')
                     ->first();
 
                 if ($existingDraft) {

@@ -53,8 +53,8 @@ it('admin can create a user with valid data', function () {
         ->fillForm([
             'name' => 'New User',
             'email' => 'newuser@capintake.test',
-            'password' => 'SecurePass1',
-            'password_confirmation' => 'SecurePass1',
+            'password' => 'SecurePass1!',
+            'password_confirmation' => 'SecurePass1!',
             'role' => UserRole::Caseworker->value,
             'is_active' => true,
         ])
@@ -97,8 +97,8 @@ it('cannot create user with duplicate email', function () {
         ->fillForm([
             'name' => 'Duplicate',
             'email' => $this->admin->email,
-            'password' => 'SecurePass1',
-            'password_confirmation' => 'SecurePass1',
+            'password' => 'SecurePass1!',
+            'password_confirmation' => 'SecurePass1!',
             'role' => UserRole::Caseworker->value,
         ])
         ->call('create')

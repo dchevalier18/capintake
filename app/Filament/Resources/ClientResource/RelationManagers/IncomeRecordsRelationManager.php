@@ -82,16 +82,14 @@ class IncomeRecordsRelationManager extends RelationManager
                     ->sortable(),
 
                 TextColumn::make('amount')
-                    ->money('USD')
-                    ->sortable(),
+                    ->money('USD'),
 
                 TextColumn::make('frequency')
                     ->badge()
                     ->sortable(),
 
                 TextColumn::make('annual_amount')
-                    ->money('USD')
-                    ->sortable(),
+                    ->money('USD'),
 
                 BooleanColumn::make('is_verified')
                     ->label('Verified'),

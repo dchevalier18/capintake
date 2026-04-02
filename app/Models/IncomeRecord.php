@@ -33,8 +33,8 @@ class IncomeRecord extends Model
     protected function casts(): array
     {
         return [
-            'amount' => 'decimal:2',
-            'annual_amount' => 'decimal:2',
+            'amount' => 'encrypted',
+            'annual_amount' => 'encrypted',
             'frequency' => IncomeFrequency::class,
             'is_verified' => 'boolean',
             'verified_at' => 'date',

@@ -22,6 +22,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Password::defaults(fn () => Password::min(10)
             ->mixedCase()
-            ->numbers());
+            ->numbers()
+            ->symbols());
     }
 }

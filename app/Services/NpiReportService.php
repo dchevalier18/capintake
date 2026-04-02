@@ -180,18 +180,24 @@ class NpiReportService
 
     /**
      * SQL expression to bucket client ages into CSBG-standard ranges.
+     *
+     * Uses the birth_year column instead of date_of_birth because DOB is
+     * encrypted at rest and cannot be used in SQL expressions.
      */
     protected function ageRangeExpression(): string
     {
         $driver = config('database.default');
 
         if ($driver === 'sqlite') {
-            $ageDiff = "(strftime('%Y', 'now') - strftime('%Y', c.date_of_birth))";
+            $currentYear = "(CAST(strftime('%Y', 'now') AS INTEGER))";
         } else {
-            $ageDiff = 'TIMESTAMPDIFF(YEAR, c.date_of_birth, CURDATE())';
+            $currentYear = 'YEAR(CURDATE())';
         }
 
+        $ageDiff = "({$currentYear} - c.birth_year)";
+
         return "CASE
+            WHEN c.birth_year IS NULL THEN 'unknown'
             WHEN {$ageDiff} < 6 THEN '0-5'
             WHEN {$ageDiff} BETWEEN 6 AND 12 THEN '6-12'
             WHEN {$ageDiff} BETWEEN 13 AND 17 THEN '13-17'

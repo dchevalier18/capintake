@@ -102,8 +102,7 @@ class MembersRelationManager extends RelationManager
                     ->label('Relationship'),
 
                 TextColumn::make('date_of_birth')
-                    ->date()
-                    ->sortable(),
+                    ->date(),
 
                 TextColumn::make('employment_status')
                     ->badge(),

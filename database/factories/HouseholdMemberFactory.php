@@ -15,11 +15,14 @@ class HouseholdMemberFactory extends Factory
 
     public function definition(): array
     {
+        $dob = fake()->dateTimeBetween('-80 years', '-1 year');
+
         return [
             'household_id' => Household::factory(),
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
-            'date_of_birth' => fake()->dateTimeBetween('-80 years', '-1 year'),
+            'date_of_birth' => $dob,
+            'birth_year' => (int) $dob->format('Y'),
             'gender' => fake()->randomElement(['male', 'female', 'non_binary']),
             'race' => fake()->randomElement([
                 'white', 'black_african_american', 'asian',
@@ -38,19 +41,29 @@ class HouseholdMemberFactory extends Factory
 
     public function child(): static
     {
-        return $this->state(fn () => [
-            'date_of_birth' => fake()->dateTimeBetween('-17 years', '-1 year'),
-            'relationship_to_client' => 'child',
-            'employment_status' => null,
-            'is_student' => true,
-        ]);
+        return $this->state(function () {
+            $dob = fake()->dateTimeBetween('-17 years', '-1 year');
+
+            return [
+                'date_of_birth' => $dob,
+                'birth_year' => (int) $dob->format('Y'),
+                'relationship_to_client' => 'child',
+                'employment_status' => null,
+                'is_student' => true,
+            ];
+        });
     }
 
     public function spouse(): static
     {
-        return $this->state(fn () => [
-            'date_of_birth' => fake()->dateTimeBetween('-70 years', '-18 years'),
-            'relationship_to_client' => 'spouse',
-        ]);
+        return $this->state(function () {
+            $dob = fake()->dateTimeBetween('-70 years', '-18 years');
+
+            return [
+                'date_of_birth' => $dob,
+                'birth_year' => (int) $dob->format('Y'),
+                'relationship_to_client' => 'spouse',
+            ];
+        });
     }
 }

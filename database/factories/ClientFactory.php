@@ -15,13 +15,15 @@ class ClientFactory extends Factory
     public function definition(): array
     {
         $ssn = fake()->numerify('#########');
+        $dob = fake()->dateTimeBetween('-80 years', '-18 years');
 
         return [
             'household_id' => Household::factory(),
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
             'middle_name' => fake()->optional(0.3)->firstName(),
-            'date_of_birth' => fake()->dateTimeBetween('-80 years', '-18 years'),
+            'date_of_birth' => $dob,
+            'birth_year' => (int) $dob->format('Y'),
             'ssn_encrypted' => $ssn,
             'ssn_last_four' => substr($ssn, -4),
             'phone' => fake()->numerify('(###) ###-####'),
@@ -43,18 +45,28 @@ class ClientFactory extends Factory
 
     public function minor(): static
     {
-        return $this->state(fn () => [
-            'date_of_birth' => fake()->dateTimeBetween('-17 years', '-1 year'),
-            'is_head_of_household' => false,
-            'relationship_to_head' => 'child',
-        ]);
+        return $this->state(function () {
+            $dob = fake()->dateTimeBetween('-17 years', '-1 year');
+
+            return [
+                'date_of_birth' => $dob,
+                'birth_year' => (int) $dob->format('Y'),
+                'is_head_of_household' => false,
+                'relationship_to_head' => 'child',
+            ];
+        });
     }
 
     public function veteran(): static
     {
-        return $this->state(fn () => [
-            'is_veteran' => true,
-            'date_of_birth' => fake()->dateTimeBetween('-80 years', '-21 years'),
-        ]);
+        return $this->state(function () {
+            $dob = fake()->dateTimeBetween('-80 years', '-21 years');
+
+            return [
+                'is_veteran' => true,
+                'date_of_birth' => $dob,
+                'birth_year' => (int) $dob->format('Y'),
+            ];
+        });
     }
 }

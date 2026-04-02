@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\EncryptedDate;
 use App\Enums\IntakeStatus;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,6 +24,7 @@ class Client extends Model
         'last_name',
         'middle_name',
         'date_of_birth',
+        'birth_year',
         'ssn_encrypted',
         'ssn_last_four',
         'phone',
@@ -43,7 +45,8 @@ class Client extends Model
     protected function casts(): array
     {
         return [
-            'date_of_birth' => 'date',
+            'date_of_birth' => EncryptedDate::class,
+            'birth_year' => 'integer',
             'ssn_encrypted' => 'encrypted',
             'is_veteran' => 'boolean',
             'is_disabled' => 'boolean',
@@ -51,6 +54,16 @@ class Client extends Model
             'intake_status' => IntakeStatus::class,
             'intake_step' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Client $model) {
+            $dob = $model->date_of_birth;
+            if ($dob instanceof \DateTimeInterface) {
+                $model->birth_year = (int) $dob->format('Y');
+            }
+        });
     }
 
     // --- Relationships ---
@@ -106,7 +119,9 @@ class Client extends Model
 
     public function totalAnnualIncome(): float
     {
-        return (float) $this->incomeRecords()->sum('annual_amount');
+        return (float) $this->incomeRecords()
+            ->get()
+            ->sum(fn (IncomeRecord $r): float => (float) $r->annual_amount);
     }
 
     /**

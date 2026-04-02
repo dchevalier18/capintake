@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\EncryptedDate;
 use App\Enums\EmploymentStatus;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,6 +22,7 @@ class HouseholdMember extends Model
         'first_name',
         'last_name',
         'date_of_birth',
+        'birth_year',
         'gender',
         'race',
         'ethnicity',
@@ -36,12 +38,23 @@ class HouseholdMember extends Model
     protected function casts(): array
     {
         return [
-            'date_of_birth' => 'date',
+            'date_of_birth' => EncryptedDate::class,
+            'birth_year' => 'integer',
             'employment_status' => EmploymentStatus::class,
             'is_veteran' => 'boolean',
             'is_disabled' => 'boolean',
             'is_student' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (HouseholdMember $model) {
+            $dob = $model->date_of_birth;
+            if ($dob instanceof \DateTimeInterface) {
+                $model->birth_year = (int) $dob->format('Y');
+            }
+        });
     }
 
     // --- Relationships ---
