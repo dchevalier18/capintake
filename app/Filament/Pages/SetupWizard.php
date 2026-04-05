@@ -79,6 +79,8 @@ class SetupWizard extends Page
                 'program_id' => $p->id,
                 'program_name' => $p->name,
                 'program_code' => $p->code,
+                'fpl_threshold_percent' => $p->fpl_threshold_percent,
+                'requires_income_eligibility' => $p->requires_income_eligibility,
                 'is_active' => $p->is_active,
             ])->toArray(),
         ]);
@@ -248,6 +250,19 @@ class SetupWizard extends Page
                             ->maxLength(10)
                             ->placeholder('e.g., CSBG'),
 
+                        TextInput::make('fpl_threshold_percent')
+                            ->label('FPL Threshold %')
+                            ->numeric()
+                            ->default(200)
+                            ->minValue(0)
+                            ->maxValue(500)
+                            ->suffix('%')
+                            ->helperText('Max income as % of Federal Poverty Level (e.g., 150 = 150% FPL)'),
+
+                        Toggle::make('requires_income_eligibility')
+                            ->label('Requires Income Eligibility')
+                            ->default(true),
+
                         Toggle::make('is_active')
                             ->label('Active')
                             ->default(true),
@@ -343,6 +358,8 @@ class SetupWizard extends Page
                     // Update existing program
                     Program::where('id', $programData['program_id'])->update([
                         'name' => $programData['program_name'],
+                        'fpl_threshold_percent' => (int) ($programData['fpl_threshold_percent'] ?? 200),
+                        'requires_income_eligibility' => $programData['requires_income_eligibility'] ?? true,
                         'is_active' => $programData['is_active'] ?? true,
                     ]);
                     $submittedIds[] = $programData['program_id'];
@@ -362,6 +379,8 @@ class SetupWizard extends Page
                     $program = Program::create([
                         'name' => $programData['program_name'],
                         'code' => $code,
+                        'fpl_threshold_percent' => (int) ($programData['fpl_threshold_percent'] ?? 200),
+                        'requires_income_eligibility' => $programData['requires_income_eligibility'] ?? true,
                         'is_active' => $programData['is_active'] ?? true,
                     ]);
                     $submittedIds[] = $program->id;

@@ -34,8 +34,14 @@ class Client extends Model
         'ethnicity',
         'is_veteran',
         'is_disabled',
+        'is_disconnected_youth',
         'is_head_of_household',
         'preferred_language',
+        'education_level',
+        'health_insurance_status',
+        'health_insurance_source',
+        'military_status',
+        'employment_status',
         'relationship_to_head',
         'notes',
         'intake_status',
@@ -50,6 +56,7 @@ class Client extends Model
             'ssn_encrypted' => 'encrypted',
             'is_veteran' => 'boolean',
             'is_disabled' => 'boolean',
+            'is_disconnected_youth' => 'boolean',
             'is_head_of_household' => 'boolean',
             'intake_status' => IntakeStatus::class,
             'intake_step' => 'integer',
@@ -88,9 +95,39 @@ class Client extends Model
         return $this->hasMany(IncomeRecord::class);
     }
 
+    public function nonCashBenefits(): HasMany
+    {
+        return $this->hasMany(ClientNonCashBenefit::class);
+    }
+
     public function activeEnrollments(): HasMany
     {
         return $this->enrollments()->where('status', 'active');
+    }
+
+    public function outcomes(): HasMany
+    {
+        return $this->hasMany(Outcome::class);
+    }
+
+    public function casePlans(): HasMany
+    {
+        return $this->hasMany(CasePlan::class);
+    }
+
+    public function referrals(): HasMany
+    {
+        return $this->hasMany(Referral::class);
+    }
+
+    public function followUps(): HasMany
+    {
+        return $this->hasMany(FollowUp::class);
+    }
+
+    public function selfSufficiencyAssessments(): HasMany
+    {
+        return $this->hasMany(SelfSufficiencyAssessment::class);
     }
 
     // --- Scopes ---

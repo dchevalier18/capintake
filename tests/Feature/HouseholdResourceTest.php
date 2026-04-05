@@ -14,6 +14,7 @@ use Livewire\Livewire;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->seed(\Database\Seeders\LookupSeeder::class);
     $this->admin = User::factory()->admin()->create();
     $this->supervisor = User::factory()->supervisor()->create();
     $this->caseworker = User::factory()->caseworker()->create();
@@ -47,7 +48,7 @@ it('can create a household with valid data', function () {
             'state' => 'PA',
             'zip' => '18503',
             'county' => 'Lackawanna',
-            'housing_type' => 'rented',
+            'housing_type' => 'rent',
             'household_size' => 3,
         ])
         ->call('create')

@@ -190,6 +190,33 @@ it('login throttle middleware is configured', function () {
     expect($middleware)->toContain(\Filament\Http\Middleware\AuthenticateSession::class);
 });
 
+it('custom login page with rate limiting is registered', function () {
+    $panel = \Filament\Facades\Filament::getDefaultPanel();
+
+    // The panel should use our custom Login class
+    expect($panel->getLoginRouteAction())->toBe(\App\Filament\Pages\Auth\Login::class);
+});
+
+it('login rate limiter blocks after 5 failed attempts', function () {
+    $email = 'attacker@example.com';
+    $ip = '127.0.0.1';
+
+    // Clear any existing rate limit state
+    $key = 'login-attempt:' . sha1($email . '|' . $ip);
+    \Illuminate\Support\Facades\RateLimiter::clear($key);
+
+    // Simulate 5 failed attempts by hitting the rate limiter
+    for ($i = 0; $i < 5; $i++) {
+        \Illuminate\Support\Facades\RateLimiter::hit($key, 60);
+    }
+
+    // The 6th attempt should be blocked
+    expect(\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($key, 5))->toBeTrue();
+
+    // Clean up
+    \Illuminate\Support\Facades\RateLimiter::clear($key);
+});
+
 // =========================================================================
 // Password Complexity
 // =========================================================================

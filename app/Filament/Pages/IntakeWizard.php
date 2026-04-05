@@ -33,6 +33,7 @@ use Filament\Support\Exceptions\Halt;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Services\Lookup;
 use Illuminate\Support\HtmlString;
 
 class IntakeWizard extends Page
@@ -77,7 +78,7 @@ class IntakeWizard extends Page
             'relationship_to_head' => 'self',
             'preferred_language' => 'en',
             'state' => 'PA',
-            'housing_type' => 'rented',
+            'housing_type' => 'rent',
             'household_mode' => 'new',
             'household_members' => [],
             'income_sources' => [],
@@ -95,6 +96,8 @@ class IntakeWizard extends Page
             'last_name' => $m->last_name,
             'date_of_birth' => $m->date_of_birth?->format('Y-m-d'),
             'relationship_to_client' => $m->relationship_to_client,
+            'gender' => $m->gender,
+            'employment_status' => $m->employment_status,
         ])->toArray();
 
         $incomes = $client->incomeRecords->map(fn (IncomeRecord $i) => [
@@ -190,8 +193,6 @@ class IntakeWizard extends Page
                         DatePicker::make('date_of_birth')
                             ->required()
                             ->maxDate(now())
-                            ->native(false)
-                            ->displayFormat('m/d/Y')
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn () => $this->runDuplicateCheck()),
 
@@ -260,31 +261,14 @@ class IntakeWizard extends Page
                 Section::make('Demographics')
                     ->schema([
                         Select::make('gender')
-                            ->options([
-                                'male' => 'Male',
-                                'female' => 'Female',
-                                'non_binary' => 'Non-Binary',
-                                'other' => 'Other',
-                                'prefer_not_to_say' => 'Prefer Not to Say',
-                            ]),
+                            ->options(fn () => Lookup::options('gender')),
 
                         Select::make('race')
                             ->label('Race (HUD Categories)')
-                            ->options([
-                                'white' => 'White',
-                                'black' => 'Black or African American',
-                                'asian' => 'Asian',
-                                'native_american' => 'American Indian or Alaska Native',
-                                'pacific_islander' => 'Native Hawaiian or Pacific Islander',
-                                'multi_racial' => 'Two or More Races',
-                                'other' => 'Other',
-                            ]),
+                            ->options(fn () => Lookup::options('race')),
 
                         Select::make('ethnicity')
-                            ->options([
-                                'hispanic' => 'Hispanic or Latino',
-                                'not_hispanic' => 'Not Hispanic or Latino',
-                            ]),
+                            ->options(fn () => Lookup::options('ethnicity')),
 
                         Toggle::make('is_veteran')
                             ->label('Veteran')
@@ -384,15 +368,8 @@ class IntakeWizard extends Page
                             ->visible(fn (Get $get): bool => $get('household_mode') === 'new'),
 
                         Select::make('housing_type')
-                            ->options([
-                                'owned' => 'Owned',
-                                'rented' => 'Rented',
-                                'shelter' => 'Shelter',
-                                'homeless' => 'Homeless',
-                                'transitional' => 'Transitional',
-                                'other' => 'Other',
-                            ])
-                            ->default('rented'),
+                            ->options(fn () => Lookup::options('housing_type'))
+                            ->default('rent'),
 
                         Toggle::make('is_head_of_household')
                             ->label('This client is the head of household')
@@ -421,24 +398,21 @@ class IntakeWizard extends Page
                                     ->maxLength(255),
 
                                 DatePicker::make('date_of_birth')
-                                    ->maxDate(now())
-                                    ->native(false)
-                                    ->displayFormat('m/d/Y'),
+                                    ->maxDate(now()),
 
                                 Select::make('relationship_to_client')
                                     ->label('Relationship')
-                                    ->options([
-                                        'spouse' => 'Spouse/Partner',
-                                        'child' => 'Child',
-                                        'parent' => 'Parent',
-                                        'sibling' => 'Sibling',
-                                        'grandchild' => 'Grandchild',
-                                        'grandparent' => 'Grandparent',
-                                        'other' => 'Other',
-                                    ])
+                                    ->options(fn () => Lookup::options('relationship_to_head'))
                                     ->required(),
+
+                                Select::make('gender')
+                                    ->options(fn () => Lookup::options('gender')),
+
+                                Select::make('employment_status')
+                                    ->label('Employment')
+                                    ->options(fn () => Lookup::options('employment_status')),
                             ])
-                            ->columns(4)
+                            ->columns(3)
                             ->addActionLabel('Add household member')
                             ->reorderable(false)
                             ->defaultItems(0)
@@ -479,18 +453,7 @@ class IntakeWizard extends Page
                             ->label('')
                             ->schema([
                                 Select::make('source')
-                                    ->options([
-                                        'employment' => 'Employment',
-                                        'ssi' => 'SSI',
-                                        'ssdi' => 'SSDI',
-                                        'tanf' => 'TANF',
-                                        'snap' => 'SNAP',
-                                        'child_support' => 'Child Support',
-                                        'pension' => 'Pension',
-                                        'unemployment' => 'Unemployment',
-                                        'self_employment' => 'Self-Employment',
-                                        'other' => 'Other',
-                                    ])
+                                    ->options(fn () => Lookup::options('income_source'))
                                     ->required(),
 
                                 TextInput::make('source_description')
@@ -663,12 +626,24 @@ class IntakeWizard extends Page
                                                 } elseif ($fplPercent <= $program->fpl_threshold_percent) {
                                                     $label .= ' — Eligible (' . $fplPercent . '% / ' . $program->fpl_threshold_percent . '% max)';
                                                 } else {
-                                                    $label .= ' — Over income (' . $fplPercent . '% / ' . $program->fpl_threshold_percent . '% max)';
+                                                    $label .= ' — INELIGIBLE (' . $fplPercent . '% / ' . $program->fpl_threshold_percent . '% max)';
                                                 }
 
                                                 return [$program->id => $label];
                                             })
                                             ->toArray();
+                                    })
+                                    ->disableOptionWhen(function (string $value): bool {
+                                        $program = Program::find($value);
+                                        if (! $program || ! $program->requires_income_eligibility) {
+                                            return false;
+                                        }
+
+                                        $totalIncome = $this->calculateTotalIncome($this->data['income_sources'] ?? []);
+                                        $householdSize = count($this->data['household_members'] ?? []) + 1;
+                                        $fplPercent = FederalPovertyLevel::fplPercent($totalIncome, $householdSize);
+
+                                        return $fplPercent !== null && $fplPercent > $program->fpl_threshold_percent;
                                     })
                                     ->required()
                                     ->searchable(),
@@ -676,9 +651,7 @@ class IntakeWizard extends Page
                                 DatePicker::make('enrolled_at')
                                     ->label('Enrollment Date')
                                     ->default(now()->format('Y-m-d'))
-                                    ->required()
-                                    ->native(false)
-                                    ->displayFormat('m/d/Y'),
+                                    ->required(),
 
                                 Select::make('caseworker_id')
                                     ->label('Caseworker')
@@ -724,16 +697,6 @@ class IntakeWizard extends Page
                                     ? '***-**-' . substr(preg_replace('/\D/', '', $d['ssn_encrypted']), -4)
                                     : 'Not provided';
 
-                                $raceLabels = [
-                                    'white' => 'White', 'black' => 'Black or African American',
-                                    'asian' => 'Asian', 'native_american' => 'American Indian or Alaska Native',
-                                    'pacific_islander' => 'Native Hawaiian or Pacific Islander',
-                                    'multi_racial' => 'Two or More Races', 'other' => 'Other',
-                                ];
-                                $ethnicityLabels = [
-                                    'hispanic' => 'Hispanic or Latino',
-                                    'not_hispanic' => 'Not Hispanic or Latino',
-                                ];
                                 $dobFormatted = ! empty($d['date_of_birth'])
                                     ? date('m/d/Y', strtotime($d['date_of_birth']))
                                     : 'N/A';
@@ -744,9 +707,9 @@ class IntakeWizard extends Page
                                     'SSN' => $ssn,
                                     'Phone' => e($d['phone'] ?? 'N/A'),
                                     'Email' => e($d['email'] ?? 'N/A'),
-                                    'Gender' => ucfirst(str_replace('_', ' ', $d['gender'] ?? 'N/A')),
-                                    'Race' => $raceLabels[$d['race'] ?? ''] ?? 'N/A',
-                                    'Ethnicity' => $ethnicityLabels[$d['ethnicity'] ?? ''] ?? 'N/A',
+                                    'Gender' => e(Lookup::label('gender', $d['gender'] ?? null) ?? 'N/A'),
+                                    'Race' => e(Lookup::label('race', $d['race'] ?? null) ?? 'N/A'),
+                                    'Ethnicity' => e(Lookup::label('ethnicity', $d['ethnicity'] ?? null) ?? 'N/A'),
                                     'Veteran' => ($d['is_veteran'] ?? false) ? 'Yes' : 'No',
                                     'Disabled' => ($d['is_disabled'] ?? false) ? 'Yes' : 'No',
                                 ];
@@ -777,9 +740,11 @@ class IntakeWizard extends Page
                                 $members = $d['household_members'] ?? [];
                                 $size = count($members) + 1;
 
+                                $county = $d['county'] ?? null;
                                 $rows = [
                                     'Address' => e($address),
-                                    'Housing Type' => ucfirst($d['housing_type'] ?? 'N/A'),
+                                    'County' => e($county ?: 'N/A'),
+                                    'Housing Type' => e(Lookup::label('housing_type', $d['housing_type'] ?? null) ?? 'N/A'),
                                     'Household Size' => (string) $size,
                                     'Head of Household' => ($d['is_head_of_household'] ?? false) ? 'Yes' : 'No',
                                 ];
@@ -789,8 +754,15 @@ class IntakeWizard extends Page
                                 if (! empty($members)) {
                                     $html .= '<div class="mt-3 text-sm font-medium">Members:</div><ul class="list-disc list-inside text-sm">';
                                     foreach ($members as $m) {
+                                        $details = [e(Lookup::label('relationship_to_head', $m['relationship_to_client'] ?? null) ?? ($m['relationship_to_client'] ?? ''))];
+                                        if (! empty($m['gender'])) {
+                                            $details[] = Lookup::label('gender', $m['gender']) ?? ucfirst($m['gender']);
+                                        }
+                                        if (! empty($m['employment_status'])) {
+                                            $details[] = Lookup::label('employment_status', $m['employment_status']) ?? ucfirst($m['employment_status']);
+                                        }
                                         $html .= '<li>' . e(($m['first_name'] ?? '') . ' ' . ($m['last_name'] ?? ''))
-                                            . ' — ' . e($m['relationship_to_client'] ?? '') . '</li>';
+                                            . ' — ' . implode(', ', $details) . '</li>';
                                     }
                                     $html .= '</ul>';
                                 }
@@ -822,14 +794,8 @@ class IntakeWizard extends Page
                                         $freq = $inc['frequency'] ?? null;
                                         $annual = $freq ? $amount * IncomeFrequency::from($freq)->annualMultiplier() : $amount;
 
-                                        $sourceLabels = [
-                                            'employment' => 'Employment', 'ssi' => 'SSI', 'ssdi' => 'SSDI',
-                                            'tanf' => 'TANF', 'snap' => 'SNAP', 'child_support' => 'Child Support',
-                                            'pension' => 'Pension', 'unemployment' => 'Unemployment',
-                                            'self_employment' => 'Self-Employment', 'other' => 'Other',
-                                        ];
                                         $html .= '<tr class="border-b border-gray-100">'
-                                            . '<td class="py-1">' . e($sourceLabels[$inc['source'] ?? ''] ?? ucfirst($inc['source'] ?? '')) . '</td>'
+                                            . '<td class="py-1">' . e(Lookup::label('income_source', $inc['source'] ?? null) ?? ucfirst($inc['source'] ?? '')) . '</td>'
                                             . '<td class="text-right py-1">$' . number_format($amount, 2) . '</td>'
                                             . '<td class="py-1 pl-3">' . e($freq ? IncomeFrequency::from($freq)->label() : 'N/A') . '</td>'
                                             . '<td class="text-right py-1">$' . number_format($annual, 2) . '</td>'
@@ -1128,6 +1094,8 @@ class IntakeWizard extends Page
                     'last_name' => $member['last_name'],
                     'date_of_birth' => $member['date_of_birth'] ?? null,
                     'relationship_to_client' => $member['relationship_to_client'],
+                    'gender' => $member['gender'] ?? null,
+                    'employment_status' => $member['employment_status'] ?? null,
                 ]);
             }
 

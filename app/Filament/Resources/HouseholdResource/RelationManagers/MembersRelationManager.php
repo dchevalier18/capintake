@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\HouseholdResource\RelationManagers;
 
-use App\Enums\EmploymentStatus;
 use App\Models\HouseholdMember;
+use App\Services\Lookup;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -37,37 +37,21 @@ class MembersRelationManager extends RelationManager
                     ->maxDate(now()),
 
                 Select::make('gender')
-                    ->options([
-                        'male' => 'Male',
-                        'female' => 'Female',
-                        'non_binary' => 'Non-Binary',
-                        'other' => 'Other',
-                        'prefer_not_to_say' => 'Prefer Not to Say',
-                    ]),
+                    ->options(fn () => Lookup::options('gender')),
 
                 Select::make('race')
-                    ->options([
-                        'white' => 'White',
-                        'black' => 'Black or African American',
-                        'asian' => 'Asian',
-                        'native_american' => 'American Indian or Alaska Native',
-                        'pacific_islander' => 'Native Hawaiian or Pacific Islander',
-                        'multi_racial' => 'Two or More Races',
-                        'other' => 'Other',
-                    ]),
+                    ->options(fn () => Lookup::options('race')),
 
                 Select::make('ethnicity')
-                    ->options([
-                        'hispanic' => 'Hispanic or Latino',
-                        'not_hispanic' => 'Not Hispanic or Latino',
-                    ]),
+                    ->options(fn () => Lookup::options('ethnicity')),
 
-                TextInput::make('relationship_to_client')
-                    ->required()
-                    ->maxLength(100),
+                Select::make('relationship_to_client')
+                    ->label('Relationship')
+                    ->options(fn () => Lookup::options('relationship_to_head'))
+                    ->required(),
 
                 Select::make('employment_status')
-                    ->options(EmploymentStatus::class),
+                    ->options(fn () => Lookup::options('employment_status')),
 
                 Toggle::make('is_veteran')
                     ->label('Veteran')
@@ -81,11 +65,12 @@ class MembersRelationManager extends RelationManager
                     ->label('Student')
                     ->default(false),
 
-                TextInput::make('education_level')
-                    ->maxLength(100),
+                Select::make('education_level')
+                    ->options(fn () => Lookup::options('education_level')),
 
-                TextInput::make('health_insurance')
-                    ->maxLength(255),
+                Select::make('health_insurance')
+                    ->label('Health Insurance')
+                    ->options(fn () => Lookup::options('health_insurance_source')),
             ]);
     }
 

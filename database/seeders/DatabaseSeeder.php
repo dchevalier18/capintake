@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             // Reference data first (no dependencies)
+            LookupSeeder::class,
             FederalPovertyLevelSeeder::class,
             NpiSeeder::class,
 
@@ -20,6 +21,13 @@ class DatabaseSeeder extends Seeder
 
             // NPI-to-Service mapping (depends on NPI + Programs)
             NpiServiceMappingSeeder::class,
+
+            // CSBG SRV service categories
+            CsbgSrvCategorySeeder::class,
+
+            // Community NPI indicators and strategies
+            CnpiIndicatorSeeder::class,
+            CsbgStrCategorySeeder::class,
 
             // Default admin user
             AdminUserSeeder::class,

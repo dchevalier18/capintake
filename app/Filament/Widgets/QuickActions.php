@@ -43,6 +43,17 @@ class QuickActions extends Widget
         return Client::draft()->count();
     }
 
+    public function getDraftUrl(): string
+    {
+        $latestDraft = Client::draft()->latest()->first();
+
+        if ($latestDraft) {
+            return IntakeWizard::getUrl(['client' => $latestDraft->id]);
+        }
+
+        return IntakeWizard::getUrl();
+    }
+
     public function getNewIntakeUrl(): string
     {
         return IntakeWizard::getUrl();

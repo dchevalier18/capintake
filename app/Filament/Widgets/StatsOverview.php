@@ -47,7 +47,7 @@ class StatsOverview extends StatsOverviewWidget
 
         $intakeTrend = $intakesLastWeek > 0
             ? round((($intakesThisWeek - $intakesLastWeek) / $intakesLastWeek) * 100)
-            : ($intakesThisWeek > 0 ? 100 : 0);
+            : null;
 
         // Active enrollments
         $activeEnrollments = Enrollment::where('status', EnrollmentStatus::Active)->count();
@@ -62,23 +62,36 @@ class StatsOverview extends StatsOverviewWidget
             Stat::make('Clients Served', $clientsThisMonth)
                 ->description($clientsThisYear . ' this year')
                 ->descriptionIcon('heroicon-m-calendar')
+                ->descriptionColor('gray')
                 ->color('primary')
                 ->chart($this->getMonthlyClientTrend()),
 
             Stat::make('New Intakes This Week', $intakesThisWeek)
-                ->description($intakeTrend >= 0 ? $intakeTrend . '% increase' : abs($intakeTrend) . '% decrease')
-                ->descriptionIcon($intakeTrend >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
-                ->descriptionColor($intakeTrend >= 0 ? 'success' : 'danger')
+                ->description(
+                    $intakeTrend === null
+                        ? ($intakesThisWeek > 0 ? $intakesThisWeek . ' new this week' : 'No intakes yet')
+                        : ($intakeTrend >= 0 ? $intakeTrend . '% increase' : abs($intakeTrend) . '% decrease')
+                )
+                ->descriptionIcon(
+                    $intakeTrend === null
+                        ? 'heroicon-m-information-circle'
+                        : ($intakeTrend >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
+                )
+                ->descriptionColor(
+                    $intakeTrend === null ? 'gray' : ($intakeTrend >= 0 ? 'success' : 'danger')
+                )
                 ->color('success'),
 
             Stat::make('Active Enrollments', $activeEnrollments)
                 ->description($this->getTopProgramLabel())
                 ->descriptionIcon('heroicon-m-academic-cap')
+                ->descriptionColor('gray')
                 ->color('warning'),
 
             Stat::make('Unduplicated Clients', $unduplicatedClients)
                 ->description('Fiscal year to date')
                 ->descriptionIcon('heroicon-m-user-group')
+                ->descriptionColor('gray')
                 ->color('info'),
         ];
     }

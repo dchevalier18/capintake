@@ -49,6 +49,11 @@ class Service extends Model
             ->withTimestamps();
     }
 
+    public function srvCategories(): BelongsToMany
+    {
+        return $this->belongsToMany(CsbgSrvCategory::class, 'service_srv_category');
+    }
+
     // --- Scopes ---
 
     public function scopeActive($query)

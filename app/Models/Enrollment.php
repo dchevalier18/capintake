@@ -66,6 +66,11 @@ class Enrollment extends Model
         return $this->hasMany(ServiceRecord::class);
     }
 
+    public function outcomes(): HasMany
+    {
+        return $this->hasMany(Outcome::class);
+    }
+
     // --- Scopes ---
 
     public function scopeActive($query)

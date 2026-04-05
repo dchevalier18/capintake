@@ -22,6 +22,7 @@ class Household extends Model
         'zip',
         'county',
         'housing_type',
+        'household_type',
         'household_size',
     ];
 

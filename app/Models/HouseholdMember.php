@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Casts\EncryptedDate;
-use App\Enums\EmploymentStatus;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -40,7 +39,7 @@ class HouseholdMember extends Model
         return [
             'date_of_birth' => EncryptedDate::class,
             'birth_year' => 'integer',
-            'employment_status' => EmploymentStatus::class,
+            'employment_status' => 'string',
             'is_veteran' => 'boolean',
             'is_disabled' => 'boolean',
             'is_student' => 'boolean',

@@ -92,10 +92,20 @@ class AuditLogViewer extends Page implements HasTable
                             return 'Record restored';
                         }
                         if (is_array($record->new_values)) {
-                            $fields = array_keys($record->new_values);
+                            $changes = [];
+                            $oldValues = $record->old_values ?? [];
+                            foreach ($record->new_values as $field => $newVal) {
+                                if ($field === 'updated_at') {
+                                    continue;
+                                }
+                                $oldVal = $oldValues[$field] ?? null;
+                                $old = $this->formatAuditValue($oldVal);
+                                $new = $this->formatAuditValue($newVal);
+                                $changes[] = "{$field}: {$old} → {$new}";
+                            }
 
-                            return 'Updated: ' . implode(', ', array_slice($fields, 0, 3))
-                                . (count($fields) > 3 ? ' +' . (count($fields) - 3) . ' more' : '');
+                            return implode(', ', array_slice($changes, 0, 3))
+                                . (count($changes) > 3 ? ' +' . (count($changes) - 3) . ' more' : '');
                         }
 
                         return '';
@@ -179,7 +189,7 @@ class AuditLogViewer extends Page implements HasTable
                             $entries[] = TextEntry::make('old_values_display')
                                 ->label('Previous Values')
                                 ->state(fn () => collect($record->old_values)
-                                    ->map(fn ($value, $key) => "{$key}: " . (is_null($value) ? 'null' : (is_array($value) ? json_encode($value) : $value)))
+                                    ->map(fn ($value, $key) => "{$key}: " . $this->formatAuditValue($value))
                                     ->implode("\n"))
                                 ->markdown();
                         }
@@ -188,7 +198,7 @@ class AuditLogViewer extends Page implements HasTable
                             $entries[] = TextEntry::make('new_values_display')
                                 ->label('New Values')
                                 ->state(fn () => collect($record->new_values)
-                                    ->map(fn ($value, $key) => "{$key}: " . (is_null($value) ? 'null' : (is_array($value) ? json_encode($value) : $value)))
+                                    ->map(fn ($value, $key) => "{$key}: " . $this->formatAuditValue($value))
                                     ->implode("\n"))
                                 ->markdown();
                         }
@@ -198,5 +208,30 @@ class AuditLogViewer extends Page implements HasTable
             ])
             ->defaultSort('created_at', 'desc')
             ->paginated([10, 25, 50]);
+    }
+
+    /**
+     * Format an audit log value for display.
+     * Detects encrypted blobs (base64-encoded Laravel encrypted strings)
+     * and replaces them with a readable placeholder.
+     */
+    protected function formatAuditValue(mixed $value): string
+    {
+        if (is_null($value)) {
+            return 'null';
+        }
+
+        if (is_array($value)) {
+            return json_encode($value);
+        }
+
+        $str = (string) $value;
+
+        // Detect Laravel encrypted values (base64-encoded JSON with iv/value/mac)
+        if ($str === '[encrypted]' || (strlen($str) > 100 && str_starts_with($str, 'eyJ'))) {
+            return '[encrypted]';
+        }
+
+        return $str;
     }
 }

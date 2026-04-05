@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\HouseholdResource\RelationManagers;
 
 use App\Models\Client;
+use App\Services\Lookup;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -48,13 +49,7 @@ class ClientsRelationManager extends RelationManager
                     ->maxLength(255),
 
                 Select::make('gender')
-                    ->options([
-                        'male' => 'Male',
-                        'female' => 'Female',
-                        'non_binary' => 'Non-Binary',
-                        'other' => 'Other',
-                        'prefer_not_to_say' => 'Prefer Not to Say',
-                    ]),
+                    ->options(fn () => Lookup::options('gender')),
 
                 Toggle::make('is_head_of_household')
                     ->label('Head of Household')
