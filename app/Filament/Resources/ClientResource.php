@@ -8,6 +8,7 @@ use App\Enums\IntakeStatus;
 use App\Filament\Resources\ClientResource\Pages;
 use App\Filament\Resources\ClientResource\RelationManagers;
 use App\Models\Client;
+use App\Services\Lookup;
 use App\Models\Household;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\DatePicker;
@@ -94,39 +95,29 @@ class ClientResource extends Resource
                             ->email()
                             ->maxLength(255),
 
-                        TextInput::make('preferred_language')
-                            ->maxLength(100)
-                            ->default('English'),
+                        Select::make('preferred_language')
+                            ->options([
+                                'en' => 'English',
+                                'es' => 'Spanish',
+                                'zh' => 'Chinese',
+                                'vi' => 'Vietnamese',
+                                'ar' => 'Arabic',
+                                'other' => 'Other',
+                            ])
+                            ->default('en'),
                     ])
                     ->columns(3),
 
                 Section::make('Demographics')
                     ->schema([
                         Select::make('gender')
-                            ->options([
-                                'male' => 'Male',
-                                'female' => 'Female',
-                                'non_binary' => 'Non-Binary',
-                                'other' => 'Other',
-                                'prefer_not_to_say' => 'Prefer Not to Say',
-                            ]),
+                            ->options(fn () => Lookup::options('gender')),
 
                         Select::make('race')
-                            ->options([
-                                'white' => 'White',
-                                'black' => 'Black or African American',
-                                'asian' => 'Asian',
-                                'native_american' => 'American Indian or Alaska Native',
-                                'pacific_islander' => 'Native Hawaiian or Pacific Islander',
-                                'multi_racial' => 'Two or More Races',
-                                'other' => 'Other',
-                            ]),
+                            ->options(fn () => Lookup::options('race')),
 
                         Select::make('ethnicity')
-                            ->options([
-                                'hispanic' => 'Hispanic or Latino',
-                                'not_hispanic' => 'Not Hispanic or Latino',
-                            ]),
+                            ->options(fn () => Lookup::options('ethnicity')),
 
                         Toggle::make('is_veteran')
                             ->label('Veteran')
@@ -252,6 +243,10 @@ class ClientResource extends Resource
             RelationManagers\EnrollmentsRelationManager::class,
             RelationManagers\ServiceRecordsRelationManager::class,
             RelationManagers\IncomeRecordsRelationManager::class,
+            RelationManagers\OutcomesRelationManager::class,
+            RelationManagers\CasePlansRelationManager::class,
+            RelationManagers\ReferralsRelationManager::class,
+            RelationManagers\FollowUpsRelationManager::class,
         ];
     }
 

@@ -25,7 +25,7 @@
 
                 @if($this->getDraftCount() > 0)
                     <x-filament::button
-                        :href="$this->getNewIntakeUrl()"
+                        :href="$this->getDraftUrl()"
                         tag="a"
                         icon="heroicon-o-pencil-square"
                         color="warning"

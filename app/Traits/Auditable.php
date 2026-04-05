@@ -17,6 +17,17 @@ trait Auditable
         'remember_token',
     ];
 
+    /**
+     * Fields whose values are encrypted at rest and should be masked in audit logs.
+     * The field name will still appear (so auditors know it changed), but the
+     * value is replaced with "[encrypted]" instead of showing raw ciphertext.
+     */
+    protected static array $auditEncryptedFields = [
+        'date_of_birth',
+        'amount',
+        'annual_amount',
+    ];
+
     public static function bootAuditable(): void
     {
         static::created(function ($model) {
@@ -82,6 +93,13 @@ trait Auditable
     {
         return collect($attributes)
             ->except(static::$auditExcludedFields)
+            ->map(function ($value, $key) {
+                if (in_array($key, static::$auditEncryptedFields, true) && $value !== null) {
+                    return '[encrypted]';
+                }
+
+                return $value;
+            })
             ->toArray();
     }
 }

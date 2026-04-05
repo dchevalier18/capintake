@@ -80,8 +80,14 @@ class MyCaseload extends TableWidget
             ])
             ->defaultSort('enrolled_at', 'desc')
             ->emptyStateHeading('No active enrollments')
-            ->emptyStateDescription('Clients assigned to you will appear here.')
+            ->emptyStateDescription('Clients assigned to you will appear here. Start by creating a new intake.')
             ->emptyStateIcon('heroicon-o-clipboard-document-list')
+            ->emptyStateActions([
+                \Filament\Actions\Action::make('new_intake')
+                    ->label('New Intake')
+                    ->icon('heroicon-o-clipboard-document-list')
+                    ->url(\App\Filament\Pages\IntakeWizard::getUrl()),
+            ])
             ->paginated([5, 10, 25]);
     }
 }

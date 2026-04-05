@@ -34,7 +34,8 @@ class NpiReportService
     /**
      * Generate the full NPI report for a date range.
      *
-     * Returns a collection of goals, each with indicators, counts, and demographics.
+     * Returns a collection of goals, each with indicators using the 5-column
+     * CSBG format: served, target, actual_results, pct_achieving, target_accuracy.
      */
     public function generate(string $startDate, string $endDate): Collection
     {
@@ -55,11 +56,17 @@ class NpiReportService
             ->orderBy('ni.indicator_code')
             ->get();
 
-        // Pre-fetch all demographic data in two bulk queries
+        // Pre-fetch all demographic data in bulk queries
         $indicatorIds = $rows->pluck('indicator_id')->unique()->toArray();
         $raceGender = $this->demographicsByIndicator($startDate, $endDate, $indicatorIds);
 
-        return $rows->groupBy('goal_id')->map(function (Collection $indicators) use ($startDate, $endDate, $raceGender): array {
+        // Fetch outcome counts (achieved) by indicator
+        $outcomeCounts = $this->outcomeCountsByIndicator($startDate, $endDate, $indicatorIds);
+
+        // Fetch targets for the fiscal year derived from date range
+        $targets = $this->targetsByIndicator($startDate, $indicatorIds);
+
+        return $rows->groupBy('goal_id')->map(function (Collection $indicators) use ($startDate, $endDate, $raceGender, $outcomeCounts, $targets): array {
             $first = $indicators->first();
 
             $goalClientCount = $this->goalUnduplicatedCount(
@@ -72,13 +79,24 @@ class NpiReportService
                 'goal_number' => $first->goal_number,
                 'goal_name' => $first->goal_name,
                 'goal_total_clients' => $goalClientCount,
-                'indicators' => $indicators->map(function ($row) use ($raceGender): array {
+                'indicators' => $indicators->map(function ($row) use ($raceGender, $outcomeCounts, $targets): array {
                     $id = $row->indicator_id;
+                    $served = (int) $row->unduplicated_clients;
+                    $target = $targets[$id] ?? 0;
+                    $actualResults = $outcomeCounts[$id] ?? 0;
+                    $pctAchieving = $served > 0 ? round(($actualResults / $served) * 100, 1) : 0;
+                    $targetAccuracy = $target > 0 ? round(($actualResults / $target) * 100, 1) : 0;
 
                     return [
                         'indicator_code' => $row->indicator_code,
                         'indicator_name' => $row->indicator_name,
-                        'unduplicated_clients' => (int) $row->unduplicated_clients,
+                        'individuals_served' => $served,
+                        'target' => $target,
+                        'actual_results' => $actualResults,
+                        'pct_achieving' => $pctAchieving,
+                        'target_accuracy' => $targetAccuracy,
+                        // Keep legacy keys for backward compatibility with existing views
+                        'unduplicated_clients' => $served,
                         'total_services' => (int) $row->total_services,
                         'total_value' => (float) $row->total_value,
                         'by_race' => $raceGender['race'][$id] ?? [],
@@ -91,7 +109,7 @@ class NpiReportService
     }
 
     /**
-     * Build the base query joining goals → indicators → pivot → services → records.
+     * Build the base query joining goals -> indicators -> pivot -> services -> records.
      */
     protected function baseQuery(string $startDate, string $endDate)
     {
@@ -114,6 +132,68 @@ class NpiReportService
             });
 
         return $query;
+    }
+
+    /**
+     * Count achieved outcomes by indicator for the date range.
+     *
+     * @return array<int, int> indicator_id => achieved_count
+     */
+    public function outcomeCountsByIndicator(string $startDate, string $endDate, array $indicatorIds): array
+    {
+        if (empty($indicatorIds)) {
+            return [];
+        }
+
+        $rows = DB::table('outcomes')
+            ->select('npi_indicator_id', DB::raw('COUNT(DISTINCT client_id) as achieved_count'))
+            ->whereIn('npi_indicator_id', $indicatorIds)
+            ->where('status', 'achieved')
+            ->whereBetween('achieved_date', [$startDate, $this->endOfDay($endDate)])
+            ->whereNull('deleted_at')
+            ->groupBy('npi_indicator_id')
+            ->get();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[$row->npi_indicator_id] = (int) $row->achieved_count;
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Fetch FNPI targets by indicator for the fiscal year derived from the start date.
+     *
+     * @return array<int, int> indicator_id => target_count
+     */
+    protected function targetsByIndicator(string $startDate, array $indicatorIds): array
+    {
+        if (empty($indicatorIds)) {
+            return [];
+        }
+
+        // Derive fiscal year from start date using CSBG reporting period convention
+        $startMonth = (int) date('n', strtotime($startDate));
+        $startYear = (int) date('Y', strtotime($startDate));
+
+        // For Oct-Sep: if start is Oct+, fiscal year is startYear+1
+        // For Jul-Jun: if start is Jul+, fiscal year is startYear+1
+        // Simplified: use the year that the reporting period ends in
+        $fiscalYear = $startMonth >= 7 ? $startYear + 1 : $startYear;
+
+        $rows = DB::table('fnpi_targets')
+            ->select('npi_indicator_id', 'target_count')
+            ->whereIn('npi_indicator_id', $indicatorIds)
+            ->where('fiscal_year', $fiscalYear)
+            ->get();
+
+        $targets = [];
+        foreach ($rows as $row) {
+            $targets[$row->npi_indicator_id] = (int) $row->target_count;
+        }
+
+        return $targets;
     }
 
     /**
@@ -179,7 +259,7 @@ class NpiReportService
     }
 
     /**
-     * SQL expression to bucket client ages into CSBG-standard ranges.
+     * SQL expression to bucket client ages into CSBG-standard 10-range brackets.
      *
      * Uses the birth_year column instead of date_of_birth because DOB is
      * encrypted at rest and cannot be used in SQL expressions.
@@ -199,13 +279,15 @@ class NpiReportService
         return "CASE
             WHEN c.birth_year IS NULL THEN 'unknown'
             WHEN {$ageDiff} < 6 THEN '0-5'
-            WHEN {$ageDiff} BETWEEN 6 AND 12 THEN '6-12'
-            WHEN {$ageDiff} BETWEEN 13 AND 17 THEN '13-17'
+            WHEN {$ageDiff} BETWEEN 6 AND 13 THEN '6-13'
+            WHEN {$ageDiff} BETWEEN 14 AND 17 THEN '14-17'
             WHEN {$ageDiff} BETWEEN 18 AND 24 THEN '18-24'
             WHEN {$ageDiff} BETWEEN 25 AND 44 THEN '25-44'
             WHEN {$ageDiff} BETWEEN 45 AND 54 THEN '45-54'
-            WHEN {$ageDiff} BETWEEN 55 AND 64 THEN '55-64'
-            WHEN {$ageDiff} >= 65 THEN '65+'
+            WHEN {$ageDiff} BETWEEN 55 AND 59 THEN '55-59'
+            WHEN {$ageDiff} BETWEEN 60 AND 64 THEN '60-64'
+            WHEN {$ageDiff} BETWEEN 65 AND 74 THEN '65-74'
+            WHEN {$ageDiff} >= 75 THEN '75+'
             ELSE 'unknown'
         END as age_range";
     }
@@ -262,17 +344,29 @@ class NpiReportService
         $report = $this->generate($startDate, $endDate);
         $rows = [];
 
-        $races = ['white', 'black', 'asian', 'native_american', 'pacific_islander', 'multi_racial', 'other'];
-        $genders = ['male', 'female', 'non_binary', 'other'];
-        $ages = ['0-5', '6-12', '13-17', '18-24', '25-44', '45-54', '55-64', '65+'];
+        $raceOptions = Lookup::options('race');
+        $genderOptions = Lookup::options('gender');
+        $races = array_keys($raceOptions);
+        $genders = array_keys($genderOptions);
+        $ages = ['0-5', '6-13', '14-17', '18-24', '25-44', '45-54', '55-59', '60-64', '65-74', '75+'];
 
         // Header
-        $header = ['NPI Code', 'Goal / Indicator', 'Unduplicated Individuals', 'Total Services', 'Total Value ($)'];
+        $header = [
+            'NPI Code',
+            'Goal / Indicator',
+            'Individuals Served',
+            'Target',
+            'Actual Results',
+            '% Achieving',
+            'Target Accuracy %',
+            'Total Services',
+            'Total Value ($)',
+        ];
         foreach ($races as $r) {
-            $header[] = 'Race: ' . ucfirst(str_replace('_', ' ', $r));
+            $header[] = 'Race: ' . ($raceOptions[$r] ?? $r);
         }
         foreach ($genders as $g) {
-            $header[] = 'Gender: ' . ucfirst(str_replace('_', ' ', $g));
+            $header[] = 'Gender: ' . ($genderOptions[$g] ?? $g);
         }
         foreach ($ages as $a) {
             $header[] = 'Age: ' . $a;
@@ -280,7 +374,7 @@ class NpiReportService
         $rows[] = $header;
 
         foreach ($report as $goal) {
-            $goalRow = ['Goal ' . $goal['goal_number'], $goal['goal_name'], $goal['goal_total_clients'], '', ''];
+            $goalRow = ['Goal ' . $goal['goal_number'], $goal['goal_name'], $goal['goal_total_clients'], '', '', '', '', '', ''];
             $goalRow = array_merge($goalRow, array_fill(0, count($races) + count($genders) + count($ages), ''));
             $rows[] = $goalRow;
 
@@ -288,7 +382,11 @@ class NpiReportService
                 $row = [
                     $indicator['indicator_code'],
                     $indicator['indicator_name'],
-                    $indicator['unduplicated_clients'],
+                    $indicator['individuals_served'],
+                    $indicator['target'],
+                    $indicator['actual_results'],
+                    $indicator['pct_achieving'],
+                    $indicator['target_accuracy'],
                     $indicator['total_services'],
                     number_format($indicator['total_value'], 2),
                 ];
@@ -307,7 +405,7 @@ class NpiReportService
             }
         }
 
-        $grandTotalRow = ['', 'GRAND TOTAL (Unduplicated)', $this->grandTotalUnduplicatedClients($startDate, $endDate), '', ''];
+        $grandTotalRow = ['', 'GRAND TOTAL (Unduplicated)', $this->grandTotalUnduplicatedClients($startDate, $endDate), '', '', '', '', '', ''];
         $grandTotalRow = array_merge($grandTotalRow, array_fill(0, count($races) + count($genders) + count($ages), ''));
         $rows[] = $grandTotalRow;
 

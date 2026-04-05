@@ -11,38 +11,32 @@ use Illuminate\Database\Seeder;
 class NpiServiceMappingSeeder extends Seeder
 {
     /**
-     * Map service codes to NPI indicator codes.
+     * Map service codes to FNPI indicator codes.
      * A single service can map to multiple indicators.
      */
     public function run(): void
     {
         $mappings = [
-            // Employment services → Goal 1
-            'CSBG-ERT' => ['1.1', '1.2'],
+            // CSBG services
+            'CSBG-ERT' => ['FNPI-1a', 'FNPI-1b'],
+            'CSBG-FLW' => ['FNPI-2h', 'FNPI-3d'],
+            'CSBG-VITA' => ['FNPI-3a'],
+            'CSBG-IR' => ['FNPI-3c'],
+            'CSBG-CM' => ['FNPI-1c', 'FNPI-3c', 'FNPI-4c'],
 
-            // Education services → Goal 2
-            'CSBG-FLW' => ['2.2', '3.4'],
+            // Emergency services
+            'EMRG-RENT' => ['FNPI-4b', 'FNPI-4e', 'FNPI-7a'],
+            'EMRG-FOOD' => ['FNPI-7a'],
+            'EMRG-UTIL' => ['FNPI-7a'],
+            'EMRG-RX' => ['FNPI-5b', 'FNPI-7a'],
+            'EMRG-CLO' => ['FNPI-7a'],
 
-            // Income & Asset Building → Goal 3
-            'CSBG-VITA' => ['3.1'],
-            'CSBG-IR' => ['3.3'],
-            'CSBG-CM' => ['1.2', '3.3', '4.2'],
-
-            // Housing → Goal 4
-            'EMRG-RENT' => ['4.1', '4.3', '7.4'],
-            'WAP-AUDIT' => ['4.2'],
-            'WAP-INS' => ['4.2'],
-            'WAP-FURN' => ['4.2'],
-            'WAP-SEAL' => ['4.2'],
-            'WAP-WIN' => ['4.2'],
-
-            // Health → Goal 5
-            'EMRG-RX' => ['5.1', '7.5'],
-
-            // Emergency / Multi-domain → Goal 7
-            'EMRG-FOOD' => ['7.1', '7.2'],
-            'EMRG-UTIL' => ['7.1', '7.3'],
-            'EMRG-CLO' => ['7.1'],
+            // Weatherization services
+            'WAP-AUDIT' => ['FNPI-4h'],
+            'WAP-INS' => ['FNPI-4h'],
+            'WAP-FURN' => ['FNPI-4h'],
+            'WAP-SEAL' => ['FNPI-4h'],
+            'WAP-WIN' => ['FNPI-4h'],
         ];
 
         foreach ($mappings as $serviceCode => $indicatorCodes) {

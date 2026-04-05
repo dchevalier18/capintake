@@ -27,9 +27,9 @@ class NpiReport extends Page
 
     protected string $view = 'filament.pages.npi-report';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Reports';
+    protected static string|\UnitEnum|null $navigationGroup = 'CSBG Reports';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
 
     public ?string $startDate = null;
 

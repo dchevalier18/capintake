@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\HouseholdResource\Pages;
 use App\Filament\Resources\HouseholdResource\RelationManagers;
 use App\Models\Household;
+use App\Services\Lookup;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
@@ -68,14 +69,7 @@ class HouseholdResource extends Resource
                 Section::make('Household Details')
                     ->schema([
                         Select::make('housing_type')
-                            ->options([
-                                'owned' => 'Owned',
-                                'rented' => 'Rented',
-                                'shelter' => 'Shelter',
-                                'homeless' => 'Homeless',
-                                'transitional' => 'Transitional Housing',
-                                'other' => 'Other',
-                            ]),
+                            ->options(fn () => Lookup::options('housing_type')),
 
                         TextInput::make('household_size')
                             ->numeric()
@@ -126,14 +120,7 @@ class HouseholdResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('housing_type')
-                    ->options([
-                        'owned' => 'Owned',
-                        'rented' => 'Rented',
-                        'shelter' => 'Shelter',
-                        'homeless' => 'Homeless',
-                        'transitional' => 'Transitional Housing',
-                        'other' => 'Other',
-                    ]),
+                    ->options(fn () => Lookup::options('housing_type')),
 
                 SelectFilter::make('county')
                     ->options(fn (): array => Household::query()
