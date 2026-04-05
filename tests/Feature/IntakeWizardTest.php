@@ -22,6 +22,7 @@ use Livewire\Livewire;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->seed(\Database\Seeders\LookupSeeder::class);
     $this->admin = User::factory()->admin()->create();
     $this->caseworker = User::factory()->caseworker()->create();
 });
@@ -82,7 +83,7 @@ it('completes a full intake flow and creates all records', function () {
         'state' => 'PA',
         'zip' => '17101',
         'county' => 'Dauphin',
-        'housing_type' => 'rented',
+        'housing_type' => 'rent',
         'household_size' => 2,
     ]);
 
@@ -96,7 +97,7 @@ it('completes a full intake flow and creates all records', function () {
         'email' => 'john@example.com',
         'gender' => 'male',
         'race' => 'white',
-        'ethnicity' => 'not_hispanic',
+        'ethnicity' => 'not_hispanic_latino',
         'is_veteran' => false,
         'is_disabled' => false,
         'is_head_of_household' => true,

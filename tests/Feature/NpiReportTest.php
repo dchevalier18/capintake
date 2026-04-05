@@ -20,6 +20,7 @@ uses(RefreshDatabase::class);
  */
 function seedNpiData(): void
 {
+    test()->seed(\Database\Seeders\LookupSeeder::class);
     test()->seed(\Database\Seeders\NpiSeeder::class);
     test()->seed(\Database\Seeders\ProgramSeeder::class);
     test()->seed(\Database\Seeders\NpiServiceMappingSeeder::class);
@@ -79,7 +80,7 @@ it('unduplicated count is correct — same client with 2 service records counts 
     $report = $service->generate('2025-01-01', '2025-12-31');
 
     $goal3 = $report->firstWhere('goal_number', 3);
-    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', '3.1');
+    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', 'FNPI-3a');
 
     expect($indicator31['unduplicated_clients'])->toBe(1);
     expect($indicator31['total_services'])->toBe(2);
@@ -96,7 +97,7 @@ it('service records outside date range are excluded', function () {
     $report = $service->generate('2025-01-01', '2025-12-31');
 
     $goal3 = $report->firstWhere('goal_number', 3);
-    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', '3.1');
+    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', 'FNPI-3a');
 
     expect($indicator31['unduplicated_clients'])->toBe(1);
     expect($indicator31['total_services'])->toBe(1);
@@ -151,7 +152,7 @@ it('program filter limits results to a single program', function () {
 
     $goal3 = $report->firstWhere('goal_number', 3);
     expect($goal3)->not->toBeNull();
-    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', '3.1');
+    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', 'FNPI-3a');
     expect($indicator31)->not->toBeNull();
     expect($indicator31['unduplicated_clients'])->toBe(1);
 
@@ -164,7 +165,7 @@ it('program filter limits results to a single program', function () {
 
     $goal3b = $report2->firstWhere('goal_number', 3);
     expect($goal3b)->not->toBeNull();
-    $indicator31b = collect($goal3b['indicators'])->firstWhere('indicator_code', '3.1');
+    $indicator31b = collect($goal3b['indicators'])->firstWhere('indicator_code', 'FNPI-3a');
     expect($indicator31b)->not->toBeNull();
     expect($indicator31b['unduplicated_clients'])->toBe(0);
 
@@ -197,7 +198,7 @@ it('generate includes demographic breakdowns per indicator', function () {
     seedNpiData();
 
     $client = Client::factory()->create([
-        'race' => 'black',
+        'race' => 'black_african_american',
         'gender' => 'female',
         'date_of_birth' => now()->subYears(35),
     ]);
@@ -207,10 +208,10 @@ it('generate includes demographic breakdowns per indicator', function () {
     $report = $service->generate('2025-01-01', '2025-12-31');
 
     $goal3 = $report->firstWhere('goal_number', 3);
-    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', '3.1');
+    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', 'FNPI-3a');
 
-    expect($indicator31['by_race'])->toHaveKey('black');
-    expect($indicator31['by_race']['black'])->toBe(1);
+    expect($indicator31['by_race'])->toHaveKey('black_african_american');
+    expect($indicator31['by_race']['black_african_american'])->toBe(1);
 
     expect($indicator31['by_gender'])->toHaveKey('female');
     expect($indicator31['by_gender']['female'])->toBe(1);
@@ -230,7 +231,7 @@ it('demographic breakdowns are unduplicated per indicator', function () {
     $report = $service->generate('2025-01-01', '2025-12-31');
 
     $goal3 = $report->firstWhere('goal_number', 3);
-    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', '3.1');
+    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', 'FNPI-3a');
 
     // Same client twice should count as 1 in demographics
     expect($indicator31['by_race']['white'])->toBe(1);
@@ -241,7 +242,7 @@ it('multiple clients show correct demographic counts', function () {
     seedNpiData();
 
     $clientA = Client::factory()->create(['race' => 'white', 'gender' => 'male', 'date_of_birth' => now()->subYears(30)]);
-    $clientB = Client::factory()->create(['race' => 'black', 'gender' => 'female', 'date_of_birth' => now()->subYears(50)]);
+    $clientB = Client::factory()->create(['race' => 'black_african_american', 'gender' => 'female', 'date_of_birth' => now()->subYears(50)]);
     $clientC = Client::factory()->create(['race' => 'white', 'gender' => 'female', 'date_of_birth' => now()->subYears(70)]);
 
     createServiceRecordForCode('CSBG-VITA', $clientA, '2025-06-01');
@@ -252,16 +253,16 @@ it('multiple clients show correct demographic counts', function () {
     $report = $service->generate('2025-01-01', '2025-12-31');
 
     $goal3 = $report->firstWhere('goal_number', 3);
-    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', '3.1');
+    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', 'FNPI-3a');
 
     expect($indicator31['unduplicated_clients'])->toBe(3);
     expect($indicator31['by_race']['white'])->toBe(2);
-    expect($indicator31['by_race']['black'])->toBe(1);
+    expect($indicator31['by_race']['black_african_american'])->toBe(1);
     expect($indicator31['by_gender']['male'])->toBe(1);
     expect($indicator31['by_gender']['female'])->toBe(2);
     expect($indicator31['by_age']['25-44'])->toBe(1);
     expect($indicator31['by_age']['45-54'])->toBe(1);
-    expect($indicator31['by_age']['65+'])->toBe(1);
+    expect($indicator31['by_age']['65-74'])->toBe(1);
 });
 
 // =============================================================================
@@ -276,12 +277,15 @@ it('toFlatRows includes demographic columns in header', function () {
 
     $header = $rows[0];
     expect($header)->toContain('NPI Code');
+    expect($header)->toContain('Individuals Served');
+    expect($header)->toContain('Target');
+    expect($header)->toContain('Actual Results');
     expect($header)->toContain('Race: White');
-    expect($header)->toContain('Race: Black');
+    expect($header)->toContain('Race: Black or African American');
     expect($header)->toContain('Gender: Male');
     expect($header)->toContain('Gender: Female');
     expect($header)->toContain('Age: 25-44');
-    expect($header)->toContain('Age: 65+');
+    expect($header)->toContain('Age: 75+');
 });
 
 it('toFlatRows has correct row count', function () {
@@ -290,8 +294,8 @@ it('toFlatRows has correct row count', function () {
     $service = new NpiReportService();
     $rows = $service->toFlatRows('2025-01-01', '2025-12-31');
 
-    // 1 header + 7 goal rows + 27 indicator rows + 1 grand total = 36
-    expect($rows)->toHaveCount(36);
+    // 1 header + 7 goal rows + 60 indicator rows + 1 grand total = 69
+    expect($rows)->toHaveCount(69);
 });
 
 // =============================================================================
@@ -347,7 +351,7 @@ it('generateReport respects program filter', function () {
     $goal3 = $reportData->firstWhere('goal_number', 3);
     expect($goal3)->not->toBeNull();
 
-    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', '3.1');
+    $indicator31 = collect($goal3['indicators'])->firstWhere('indicator_code', 'FNPI-3a');
     expect($indicator31)->not->toBeNull();
     expect($indicator31['unduplicated_clients'])->toBe(0);
 });

@@ -15,6 +15,7 @@ use Livewire\Livewire;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->seed(\Database\Seeders\LookupSeeder::class);
     $this->admin = User::factory()->admin()->create();
     $this->supervisor = User::factory()->supervisor()->create();
     $this->caseworker = User::factory()->caseworker()->create();
