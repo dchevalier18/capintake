@@ -2,11 +2,20 @@
 
 declare(strict_types=1);
 
+use App\Enums\EnrollmentStatus;
+use App\Enums\IncomeFrequency;
 use App\Filament\Resources\ClientResource\Pages\CreateClient;
 use App\Filament\Resources\ClientResource\Pages\EditClient;
 use App\Filament\Resources\ClientResource\Pages\ListClients;
+use App\Filament\Resources\ClientResource\Pages\ViewClient;
 use App\Models\Client;
+use App\Models\Enrollment;
+use App\Models\FederalPovertyLevel;
 use App\Models\Household;
+use App\Models\IncomeRecord;
+use App\Models\Program;
+use App\Models\Service;
+use App\Models\ServiceRecord;
 use App\Models\User;
 use Filament\Actions\DeleteAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -152,4 +161,160 @@ it('supervisor cannot delete a client', function () {
 
     Livewire::test(EditClient::class, ['record' => $client->getRouteKey()])
         ->assertActionHidden(DeleteAction::class);
+});
+
+// --- View Page ---
+
+it('can render the view page', function () {
+    $client = Client::factory()->create();
+
+    $this->actingAs($this->admin);
+
+    Livewire::test(ViewClient::class, ['record' => $client->getRouteKey()])
+        ->assertSuccessful();
+});
+
+it('view page displays client name', function () {
+    $client = Client::factory()->create([
+        'first_name' => 'TestView',
+        'last_name' => 'ClientName',
+    ]);
+
+    $this->actingAs($this->admin);
+
+    Livewire::test(ViewClient::class, ['record' => $client->getRouteKey()])
+        ->assertSee('TestView')
+        ->assertSee('ClientName');
+});
+
+it('view page shows household address', function () {
+    $household = Household::factory()->create([
+        'address_line_1' => '742 Evergreen Terrace',
+        'city' => 'Springfield',
+        'state' => 'IL',
+        'zip' => '62704',
+    ]);
+
+    $client = Client::factory()->create(['household_id' => $household->id]);
+
+    $this->actingAs($this->admin);
+
+    Livewire::test(ViewClient::class, ['record' => $client->getRouteKey()])
+        ->assertSee('742 Evergreen Terrace');
+});
+
+it('view page shows active enrollments', function () {
+    $client = Client::factory()->create();
+    $program = Program::factory()->create(['name' => 'CSBG Test Program']);
+
+    Enrollment::factory()->create([
+        'client_id' => $client->id,
+        'program_id' => $program->id,
+        'status' => EnrollmentStatus::Active,
+    ]);
+
+    $this->actingAs($this->admin);
+
+    Livewire::test(ViewClient::class, ['record' => $client->getRouteKey()])
+        ->assertSee('CSBG Test Program');
+});
+
+it('can record a service via header action', function () {
+    $client = Client::factory()->create();
+    $program = Program::factory()->create();
+    $service = Service::factory()->create(['program_id' => $program->id]);
+    $enrollment = Enrollment::factory()->create([
+        'client_id' => $client->id,
+        'program_id' => $program->id,
+        'status' => EnrollmentStatus::Active,
+    ]);
+
+    $this->actingAs($this->admin);
+
+    Livewire::test(ViewClient::class, ['record' => $client->getRouteKey()])
+        ->callAction('recordService', [
+            'enrollment_id' => $enrollment->id,
+            'service_id' => $service->id,
+            'service_date' => now()->format('Y-m-d'),
+            'quantity' => 1,
+        ])
+        ->assertHasNoActionErrors();
+
+    $this->assertDatabaseHas('service_records', [
+        'client_id' => $client->id,
+        'enrollment_id' => $enrollment->id,
+        'service_id' => $service->id,
+    ]);
+});
+
+it('can create a new enrollment via header action', function () {
+    $client = Client::factory()->create();
+    $program = Program::factory()->create();
+
+    FederalPovertyLevel::create([
+        'year' => now()->year,
+        'household_size' => $client->household->household_size,
+        'poverty_guideline' => 15060,
+        'region' => 'continental',
+    ]);
+
+    $this->actingAs($this->admin);
+
+    Livewire::test(ViewClient::class, ['record' => $client->getRouteKey()])
+        ->callAction('newEnrollment', [
+            'program_id' => $program->id,
+            'enrolled_at' => now()->format('Y-m-d'),
+            'status' => EnrollmentStatus::Active->value,
+        ])
+        ->assertHasNoActionErrors();
+
+    $this->assertDatabaseHas('enrollments', [
+        'client_id' => $client->id,
+        'program_id' => $program->id,
+    ]);
+});
+
+it('can update income via header action', function () {
+    $client = Client::factory()->create();
+
+    $this->actingAs($this->admin);
+
+    Livewire::test(ViewClient::class, ['record' => $client->getRouteKey()])
+        ->callAction('updateIncome', [
+            'source' => 'employment',
+            'amount' => 2500,
+            'frequency' => IncomeFrequency::Monthly->value,
+            'effective_date' => now()->format('Y-m-d'),
+        ])
+        ->assertHasNoActionErrors();
+
+    $this->assertDatabaseHas('income_records', [
+        'client_id' => $client->id,
+        'source' => 'employment',
+    ]);
+});
+
+it('list page shows active programs for clients', function () {
+    $client = Client::factory()->create();
+    $program = Program::factory()->create(['name' => 'Visible Program']);
+
+    Enrollment::factory()->create([
+        'client_id' => $client->id,
+        'program_id' => $program->id,
+        'status' => EnrollmentStatus::Active,
+    ]);
+
+    $this->actingAs($this->admin);
+
+    Livewire::test(ListClients::class)
+        ->assertSee('Visible Program');
+});
+
+it('list page has view action instead of edit', function () {
+    $client = Client::factory()->create();
+
+    $this->actingAs($this->admin);
+
+    Livewire::test(ListClients::class)
+        ->assertTableActionExists('view');
 });
