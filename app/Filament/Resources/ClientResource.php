@@ -19,6 +19,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\RepeatableEntry\TableColumn;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Flex;
@@ -199,7 +200,8 @@ class ClientResource extends Resource
                             ->label('Name')
                             ->getStateUsing(fn (Client $record): string => $record->fullName())
                             ->size(TextSize::Large)
-                            ->weight(FontWeight::Bold),
+                            ->weight(FontWeight::Bold)
+                            ->columnSpan(2),
                         TextEntry::make('age_dob')
                             ->label('Age / DOB')
                             ->getStateUsing(fn (Client $record): string => $record->date_of_birth
@@ -219,7 +221,8 @@ class ClientResource extends Resource
                             ->visible(fn (Client $record): bool => (bool) $record->is_disabled),
                     ])
                     ->columns(6)
-                    ->compact(),
+                    ->compact()
+                    ->columnSpanFull(),
 
                 // --- Two-column: Household + Income ---
                 Flex::make([
@@ -248,7 +251,15 @@ class ClientResource extends Resource
                                             ->label('Relationship'),
                                         TextEntry::make('age')
                                             ->label('Age')
-                                            ->getStateUsing(fn ($record): string => $record->age() !== null ? (string) $record->age() : '—'),
+                                            ->getStateUsing(function ($record): string {
+                                                if ($record->age() !== null) {
+                                                    return (string) $record->age();
+                                                }
+                                                if ($record->birth_year) {
+                                                    return (string) (now()->year - $record->birth_year);
+                                                }
+                                                return '—';
+                                            }),
                                     ])
                                     ->columns(3),
                             ])
@@ -280,6 +291,7 @@ class ClientResource extends Resource
                             ])
                             ->columns(4)
                             ->collapsible()
+                            ->collapsed()
                             ->compact(),
                     ]),
 
@@ -333,7 +345,11 @@ class ClientResource extends Resource
                                         TextEntry::make('frequency')
                                             ->formatStateUsing(fn ($state): string => $state instanceof \App\Enums\IncomeFrequency ? $state->label() : (string) ($state ?? '—')),
                                     ])
-                                    ->columns(3),
+                                    ->table([
+                                        TableColumn::make('Source'),
+                                        TableColumn::make('Annual'),
+                                        TableColumn::make('Frequency'),
+                                    ]),
                                 TextEntry::make('income_last_updated')
                                     ->label('Income Last Updated')
                                     ->getStateUsing(function (Client $record): string {
@@ -344,7 +360,8 @@ class ClientResource extends Resource
                             ])
                             ->compact(),
                     ]),
-                ]),
+                ])
+                    ->columnSpanFull(),
 
                 // --- Active Enrollments ---
                 Section::make('Active Enrollments')
@@ -377,7 +394,8 @@ class ClientResource extends Resource
                             ])
                             ->columns(5),
                     ])
-                    ->compact(),
+                    ->compact()
+                    ->columnSpanFull(),
 
                 // --- Recent Services ---
                 Section::make('Recent Services')
@@ -405,7 +423,8 @@ class ClientResource extends Resource
                             ])
                             ->columns(5),
                     ])
-                    ->compact(),
+                    ->compact()
+                    ->columnSpanFull(),
 
                 // --- Notes (collapsed) ---
                 Section::make('Notes')
@@ -415,7 +434,8 @@ class ClientResource extends Resource
                             ->default('No notes recorded.'),
                     ])
                     ->collapsible()
-                    ->collapsed(),
+                    ->collapsed()
+                    ->columnSpanFull(),
 
                 // --- Completed/Archived Enrollments (collapsed) ---
                 Section::make('Completed / Archived Enrollments')
@@ -442,7 +462,8 @@ class ClientResource extends Resource
                             ->columns(4),
                     ])
                     ->collapsible()
-                    ->collapsed(),
+                    ->collapsed()
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -526,7 +547,8 @@ class ClientResource extends Resource
                         ->sortByDesc('service_date')
                         ->first()
                         ?->service_date
-                        ?->format('m/d/Y')),
+                        ?->format('m/d/Y'))
+                    ->placeholder('—'),
 
                 TextColumn::make('created_at')
                     ->dateTime()
@@ -551,6 +573,22 @@ class ClientResource extends Resource
                         true: fn (Builder $query): Builder => $query->whereHas('activeEnrollments'),
                         false: fn (Builder $query): Builder => $query->whereDoesntHave('activeEnrollments'),
                     ),
+
+                SelectFilter::make('county')
+                    ->label('County')
+                    ->options(fn (): array => \App\Models\Household::whereNotNull('county')
+                        ->where('county', '!=', '')
+                        ->distinct()
+                        ->orderBy('county')
+                        ->pluck('county', 'county')
+                        ->toArray())
+                    ->query(fn (Builder $query, array $data): Builder => $query->when(
+                        $data['value'],
+                        fn (Builder $q, string $county): Builder => $q->whereHas(
+                            'household',
+                            fn (Builder $hq): Builder => $hq->where('county', $county)
+                        )
+                    )),
             ])
             ->actions([
                 ViewAction::make(),

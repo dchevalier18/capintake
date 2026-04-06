@@ -46,6 +46,7 @@ class ViewClient extends ViewRecord
         return [
             Action::make('recordService')
                 ->label('Record Service')
+                ->modalHeading('Record Service')
                 ->icon('heroicon-o-plus-circle')
                 ->color('success')
                 ->form([
