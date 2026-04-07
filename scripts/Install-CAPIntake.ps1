@@ -263,7 +263,7 @@ if (-not (Test-Path $envFile)) {
         Copy-Item $envExample $envFile
         Write-Ok "Created .env from .env.example"
     } else {
-        Write-Err ".env.example not found — is this the right directory?"
+        Write-Err ".env.example not found - is this the right directory?"
         Pop-Location
         exit 1
     }
@@ -353,15 +353,10 @@ Write-Step "Setting up database..."
 }
 Write-Ok "Database tables created"
 
-# Seed reference data
-$lookupCount = & $PHP artisan tinker --execute="echo App\Models\LookupCategory::count();" 2>$null
-if ($lookupCount -match "^0$" -or -not $lookupCount) {
-    Write-Host "    Seeding reference data (FPL guidelines, NPI indicators, programs)..." -ForegroundColor DarkGray
-    & $PHP artisan db:seed --force 2>&1 | Out-Null
-    Write-Ok "Reference data seeded"
-} else {
-    Write-Ok "Reference data already seeded"
-}
+# Seed reference data (seeders use updateOrCreate, safe to re-run)
+Write-Host "    Seeding reference data (FPL guidelines, NPI indicators, programs)..." -ForegroundColor DarkGray
+& $PHP artisan db:seed --force 2>&1 | Out-Null
+Write-Ok "Reference data seeded"
 
 # Create storage symlink
 & $PHP artisan storage:link 2>$null | Out-Null
@@ -372,7 +367,7 @@ if ($lookupCount -match "^0$" -or -not $lookupCount) {
 Write-Step "Creating launcher scripts..."
 
 $startBat = Join-Path $ProjectRoot "Start-CAPIntake.bat"
-$startContent = @"
+$startContent = @'
 @echo off
 title CAPIntake
 echo.
@@ -381,18 +376,18 @@ echo   CAPIntake is starting...
 echo  ========================================
 echo.
 
-cd /d "$ProjectRoot"
+cd /d "{{PROJECT_ROOT}}"
 
 :: Start the server in the background
-start "CAPIntake Server" /min "$PHP" artisan serve --port=$Port --host=127.0.0.1
+start "CAPIntake Server" /min "{{PHP}}" artisan serve --port={{PORT}} --host=127.0.0.1
 
 :: Wait for the server to be ready
 timeout /t 3 /nobreak >nul
 
 :: Open the browser
-start http://localhost:$Port
+start http://localhost:{{PORT}}
 
-echo  CAPIntake is running at http://localhost:$Port
+echo  CAPIntake is running at http://localhost:{{PORT}}
 echo.
 echo  To stop: close this window and the minimized "CAPIntake Server" window,
 echo  or run Stop-CAPIntake.bat
@@ -402,18 +397,19 @@ pause >nul
 
 :: Kill the server process
 taskkill /fi "WINDOWTITLE eq CAPIntake Server*" /f >nul 2>&1
-"@
+'@
+$startContent = $startContent.Replace('{{PROJECT_ROOT}}', $ProjectRoot).Replace('{{PHP}}', $PHP).Replace('{{PORT}}', "$Port")
 Set-Content $startBat $startContent
 Write-Ok "Created Start-CAPIntake.bat"
 
 $stopBat = Join-Path $ProjectRoot "Stop-CAPIntake.bat"
-$stopContent = @"
+$stopContent = @'
 @echo off
 echo Stopping CAPIntake...
 taskkill /fi "WINDOWTITLE eq CAPIntake Server*" /f >nul 2>&1
 echo CAPIntake stopped.
 timeout /t 2 >nul
-"@
+'@
 Set-Content $stopBat $stopContent
 Write-Ok "Created Stop-CAPIntake.bat"
 
