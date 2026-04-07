@@ -29,6 +29,26 @@ function Test-Command {
     return $?
 }
 
+function Start-CmdProcess {
+    <#
+    .SYNOPSIS
+        Runs a command via cmd.exe /c with proper quoting for paths with spaces.
+        Returns the Process object (already exited).
+    #>
+    param(
+        [string]$Command,
+        [string]$StdOutFile,
+        [string]$StdErrFile
+    )
+    # cmd.exe /c "..." treats the outer quotes as the command boundary,
+    # inner quotes protect paths with spaces.
+    return Start-Process -FilePath "cmd.exe" `
+        -ArgumentList "/c `"$Command`"" `
+        -NoNewWindow -PassThru `
+        -RedirectStandardOutput $StdOutFile `
+        -RedirectStandardError $StdErrFile
+}
+
 function Find-Executable {
     <#
     .SYNOPSIS
@@ -310,12 +330,11 @@ $composerErr = Join-Path $env:TEMP "capintake-composer-err.log"
 "" | Set-Content $composerLog
 "" | Set-Content $composerErr
 
-# Use cmd.exe /c to run .bat files so exit codes propagate correctly
-$composerProc = Start-Process -FilePath "cmd.exe" `
-    -ArgumentList "/c $COMPOSER install --no-interaction --working-dir=$ProjectRoot" `
-    -NoNewWindow -PassThru `
-    -RedirectStandardOutput $composerLog `
-    -RedirectStandardError $composerErr
+# Use cmd.exe /c with quoted paths to handle spaces in directories
+$composerProc = Start-CmdProcess `
+    -Command "`"$COMPOSER`" install --no-interaction --working-dir=`"$ProjectRoot`"" `
+    -StdOutFile $composerLog `
+    -StdErrFile $composerErr
 
 $spinIdx = 0
 $packageCount = 0
@@ -388,11 +407,10 @@ $npmErr = Join-Path $env:TEMP "capintake-npm-err.log"
 "" | Set-Content $npmLog
 "" | Set-Content $npmErr
 
-$npmProc = Start-Process -FilePath "cmd.exe" `
-    -ArgumentList "/c $NPM ci --prefix $ProjectRoot" `
-    -NoNewWindow -PassThru `
-    -RedirectStandardOutput $npmLog `
-    -RedirectStandardError $npmErr
+$npmProc = Start-CmdProcess `
+    -Command "`"$NPM`" ci --prefix `"$ProjectRoot`"" `
+    -StdOutFile $npmLog `
+    -StdErrFile $npmErr
 
 $spinIdx = 0
 while (-not $npmProc.HasExited) {
@@ -421,11 +439,10 @@ $buildErr = Join-Path $env:TEMP "capintake-build-err.log"
 "" | Set-Content $buildLog
 "" | Set-Content $buildErr
 
-$buildProc = Start-Process -FilePath "cmd.exe" `
-    -ArgumentList "/c $NPM run build --prefix $ProjectRoot" `
-    -NoNewWindow -PassThru `
-    -RedirectStandardOutput $buildLog `
-    -RedirectStandardError $buildErr
+$buildProc = Start-CmdProcess `
+    -Command "`"$NPM`" run build --prefix `"$ProjectRoot`"" `
+    -StdOutFile $buildLog `
+    -StdErrFile $buildErr
 
 $spinIdx = 0
 while (-not $buildProc.HasExited) {
