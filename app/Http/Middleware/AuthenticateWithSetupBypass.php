@@ -22,11 +22,11 @@ class AuthenticateWithSetupBypass extends Authenticate
      */
     protected function authenticate($request, array $guards): void
     {
-        // Allow unauthenticated access to setup wizard before setup is complete
+        // Skip authentication entirely until initial setup is complete.
+        // EnsureSetupComplete middleware (which runs before this) will
+        // redirect all non-setup routes to /admin/setup anyway.
         if (! AgencySetting::isSetupComplete()) {
-            if ($request->is('admin/setup') || $request->is('admin/setup/*')) {
-                return;
-            }
+            return;
         }
 
         parent::authenticate($request, $guards);
