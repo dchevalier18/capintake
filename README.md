@@ -84,31 +84,31 @@ See the [Deployment Guide](docs/DEPLOYMENT.md) for Docker Compose, VPS, and othe
 - One of: MySQL 8, PostgreSQL 15, or SQLite (SQLite works for local development)
 - A web server (Nginx recommended for production, or `php artisan serve` for development)
 
-## Quick Start
+## Quick Start (Windows)
+
+**No command line required.** Download or clone the repo, then double-click `install.bat`. The installer will:
+
+1. Check for PHP, Composer, and Node.js (installs any that are missing)
+2. Install all dependencies and build the app
+3. Set up the database with all CSBG reference data pre-loaded
+4. Create a **CAPIntake** shortcut on your desktop
+
+After install, double-click the desktop shortcut to start the app. The setup wizard will walk you through configuring your agency.
+
+> Already have PHP and Composer? Run `composer setup && composer serve` instead.
+
+## Quick Start (Mac / Linux)
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/capintake.git
+git clone https://github.com/capintake/capintake.git
 cd capintake
 
-# Install PHP dependencies
-composer install
+# One-command setup: install deps, generate key, migrate, seed, build assets
+composer setup
 
-# Install JavaScript dependencies
-npm install
-
-# Set up environment
-cp .env.example .env
-php artisan key:generate
-
-# Create database and seed reference data
-php artisan migrate --seed
-
-# Build frontend assets
-npm run build
-
-# Start the development server
-php artisan serve
+# Start the server
+composer serve
 ```
 
 The application will be available at `http://localhost:8000`.
