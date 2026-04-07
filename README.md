@@ -8,6 +8,20 @@ This is the first open-source alternative built specifically for the CAP network
 
 <!-- Screenshot: Dashboard -->
 
+## Deploy
+
+Deploy your own instance with one click:
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/capintake/capintake)
+
+Or pull the pre-built Docker image:
+
+```bash
+docker pull ghcr.io/capintake/capintake:latest
+```
+
+See the [Deployment Guide](docs/DEPLOYMENT.md) for Docker Compose, VPS, and other options.
+
 ## Who Is This For?
 
 - **Community Action Agencies (CAPs)** that need client intake, enrollment tracking, and federal reporting without the cost of proprietary tools.

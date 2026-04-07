@@ -1,0 +1,29 @@
+# Production overrides — use with: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+services:
+  app:
+    restart: always
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+
+  web:
+    restart: always
+    ports:
+      - "80:80"
+
+  db:
+    restart: always
+    # Don't expose database port externally in production
+    ports: !reset []
+
+  queue:
+    restart: always
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+
+  scheduler:
+    restart: always
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"

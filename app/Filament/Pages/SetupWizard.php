@@ -75,6 +75,13 @@ class SetupWizard extends Page
             'admin_email' => '',
             'admin_password' => '',
             'admin_password_confirmation' => '',
+            'mail_host' => $settings?->mail_host ?? '',
+            'mail_port' => $settings?->mail_port ?? 587,
+            'mail_username' => $settings?->mail_username ?? '',
+            'mail_password' => '',
+            'mail_encryption' => $settings?->mail_encryption ?? 'tls',
+            'mail_from_address' => $settings?->mail_from_address ?? '',
+            'mail_from_name' => $settings?->mail_from_name ?? '',
             'programs' => $programs->map(fn (Program $p) => [
                 'program_id' => $p->id,
                 'program_name' => $p->name,
@@ -302,6 +309,61 @@ class SetupWizard extends Page
                     ]),
             ]);
 
+        $steps[] = Step::make('Email (Optional)')
+            ->icon('heroicon-o-envelope')
+            ->description('Configure outgoing email for notifications and password resets')
+            ->schema([
+                Section::make()
+                    ->schema([
+                        Placeholder::make('mail_info')
+                            ->content('Configure SMTP settings to enable password reset emails and notifications. You can skip this step and configure it later in Settings.')
+                            ->columnSpanFull(),
+
+                        TextInput::make('mail_host')
+                            ->label('SMTP Host')
+                            ->maxLength(255)
+                            ->placeholder('smtp.gmail.com'),
+
+                        TextInput::make('mail_port')
+                            ->label('SMTP Port')
+                            ->numeric()
+                            ->default(587)
+                            ->minValue(1)
+                            ->maxValue(65535),
+
+                        TextInput::make('mail_username')
+                            ->label('SMTP Username')
+                            ->maxLength(255),
+
+                        TextInput::make('mail_password')
+                            ->label('SMTP Password')
+                            ->password()
+                            ->revealable()
+                            ->maxLength(255),
+
+                        Select::make('mail_encryption')
+                            ->label('Encryption')
+                            ->options([
+                                'tls' => 'TLS (recommended)',
+                                'ssl' => 'SSL',
+                                '' => 'None',
+                            ])
+                            ->default('tls'),
+
+                        TextInput::make('mail_from_address')
+                            ->label('From Address')
+                            ->email()
+                            ->maxLength(255)
+                            ->placeholder('noreply@youragency.org'),
+
+                        TextInput::make('mail_from_name')
+                            ->label('From Name')
+                            ->maxLength(255)
+                            ->placeholder('CAPIntake'),
+                    ])
+                    ->columns(2),
+            ]);
+
         return $steps;
     }
 
@@ -310,7 +372,7 @@ class SetupWizard extends Page
         $data = $this->form->getState();
 
         // Create or update agency settings
-        $settings = AgencySetting::first() ?? new AgencySetting();
+        $settings = AgencySetting::first() ?? new AgencySetting;
         $settings->fill([
             'agency_name' => $data['agency_name'],
             'agency_address_line_1' => $data['agency_address_line_1'] ?? null,
@@ -328,8 +390,22 @@ class SetupWizard extends Page
             'setup_completed' => true,
         ]);
 
+        // Save mail settings if provided
+        if (! empty($data['mail_host'])) {
+            $settings->fill([
+                'mail_mailer' => 'smtp',
+                'mail_host' => $data['mail_host'],
+                'mail_port' => (int) ($data['mail_port'] ?? 587),
+                'mail_username' => $data['mail_username'] ?? null,
+                'mail_password' => $data['mail_password'] ?? null,
+                'mail_encryption' => $data['mail_encryption'] ?? 'tls',
+                'mail_from_address' => $data['mail_from_address'] ?? null,
+                'mail_from_name' => $data['mail_from_name'] ?? $data['agency_name'],
+            ]);
+        }
+
         // Handle logo upload
-        if (!empty($data['logo'])) {
+        if (! empty($data['logo'])) {
             $logoPath = is_array($data['logo']) ? reset($data['logo']) : $data['logo'];
             $settings->logo_path = $logoPath;
         }
@@ -337,7 +413,7 @@ class SetupWizard extends Page
         $settings->save();
 
         // Create admin user if provided
-        if (!empty($data['admin_email']) && User::count() === 0) {
+        if (! empty($data['admin_email']) && User::count() === 0) {
             $user = User::create([
                 'name' => $data['admin_name'],
                 'email' => $data['admin_email'],
@@ -350,11 +426,11 @@ class SetupWizard extends Page
         }
 
         // Sync programs: update existing, create new, deactivate removed
-        if (!empty($data['programs'])) {
+        if (! empty($data['programs'])) {
             $submittedIds = [];
 
             foreach ($data['programs'] as $programData) {
-                if (!empty($programData['program_id'])) {
+                if (! empty($programData['program_id'])) {
                     // Update existing program
                     Program::where('id', $programData['program_id'])->update([
                         'name' => $programData['program_name'],
@@ -366,13 +442,13 @@ class SetupWizard extends Page
                 } else {
                     // Create new program
                     $code = strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $programData['program_code'] ?? $programData['program_name']), 0, 10));
-                    $code = $code ?: 'PROG' . random_int(100, 999);
+                    $code = $code ?: 'PROG'.random_int(100, 999);
 
                     // Ensure unique code
                     $baseCode = $code;
                     $suffix = 2;
                     while (Program::where('code', $code)->exists()) {
-                        $code = substr($baseCode, 0, 7) . $suffix;
+                        $code = substr($baseCode, 0, 7).$suffix;
                         $suffix++;
                     }
 

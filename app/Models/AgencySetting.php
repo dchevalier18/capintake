@@ -24,6 +24,14 @@ class AgencySetting extends Model
         'primary_color',
         'fiscal_year_start_month',
         'setup_completed',
+        'mail_mailer',
+        'mail_host',
+        'mail_port',
+        'mail_username',
+        'mail_password',
+        'mail_encryption',
+        'mail_from_address',
+        'mail_from_name',
     ];
 
     protected function casts(): array
@@ -31,6 +39,8 @@ class AgencySetting extends Model
         return [
             'fiscal_year_start_month' => 'integer',
             'setup_completed' => 'boolean',
+            'mail_port' => 'integer',
+            'mail_password' => 'encrypted',
         ];
     }
 
@@ -68,10 +78,10 @@ class AgencySetting extends Model
         ]);
 
         $lines = [];
-        if (!empty($parts)) {
+        if (! empty($parts)) {
             $lines[] = implode(', ', $parts);
         }
-        if (!empty($cityStateZip)) {
+        if (! empty($cityStateZip)) {
             $lines[] = implode(', ', $cityStateZip);
         }
 
