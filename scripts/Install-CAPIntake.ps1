@@ -306,7 +306,7 @@ $composerErr = Join-Path $env:TEMP "capintake-composer-err.log"
 
 # Use cmd.exe /c to run .bat files so exit codes propagate correctly
 $composerProc = Start-Process -FilePath "cmd.exe" `
-    -ArgumentList "/c", "`"$COMPOSER`" install --no-interaction --working-dir=`"$ProjectRoot`"" `
+    -ArgumentList "/c $COMPOSER install --no-interaction --working-dir=$ProjectRoot" `
     -NoNewWindow -PassThru `
     -RedirectStandardOutput $composerLog `
     -RedirectStandardError $composerErr
@@ -347,7 +347,7 @@ Write-Host ""
 
 # Check success: log file should contain autoload generation or "Nothing to install"
 $logContent = Get-Content $composerLog -Raw -ErrorAction SilentlyContinue
-$composerOk = ($logContent -match "autoload|Nothing to install|Package operations: 0")
+$composerOk = ($logContent -match "autoload|Nothing to install|Package operations: 0|DONE|Generating.+files")
 Remove-Item $composerLog, $composerErr -ErrorAction SilentlyContinue
 
 if (-not $composerOk) {
@@ -383,7 +383,7 @@ $npmErr = Join-Path $env:TEMP "capintake-npm-err.log"
 "" | Set-Content $npmErr
 
 $npmProc = Start-Process -FilePath "cmd.exe" `
-    -ArgumentList "/c", "`"$NPM`" ci --prefix `"$ProjectRoot`"" `
+    -ArgumentList "/c $NPM ci --prefix $ProjectRoot" `
     -NoNewWindow -PassThru `
     -RedirectStandardOutput $npmLog `
     -RedirectStandardError $npmErr
@@ -416,7 +416,7 @@ $buildErr = Join-Path $env:TEMP "capintake-build-err.log"
 "" | Set-Content $buildErr
 
 $buildProc = Start-Process -FilePath "cmd.exe" `
-    -ArgumentList "/c", "`"$NPM`" run build --prefix `"$ProjectRoot`"" `
+    -ArgumentList "/c $NPM run build --prefix $ProjectRoot" `
     -NoNewWindow -PassThru `
     -RedirectStandardOutput $buildLog `
     -RedirectStandardError $buildErr
