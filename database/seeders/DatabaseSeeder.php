@@ -29,8 +29,8 @@ class DatabaseSeeder extends Seeder
             CnpiIndicatorSeeder::class,
             CsbgStrCategorySeeder::class,
 
-            // Default admin user
-            AdminUserSeeder::class,
+            // Note: No admin user seeded here. The SetupWizard creates
+            // the first admin account during the initial setup flow.
         ]);
     }
 }
