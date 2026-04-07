@@ -300,13 +300,16 @@ Write-Step "Installing PHP dependencies (this may take a few minutes)..."
 
 $spinner = @('|', '/', '-', '\')
 $composerLog = Join-Path $env:TEMP "capintake-composer.log"
+$composerErr = Join-Path $env:TEMP "capintake-composer-err.log"
 "" | Set-Content $composerLog
+"" | Set-Content $composerErr
 
-$composerProc = Start-Process -FilePath $COMPOSER `
-    -ArgumentList "install", "--no-interaction", "--working-dir=$ProjectRoot" `
+# Use cmd.exe /c to run .bat files so exit codes propagate correctly
+$composerProc = Start-Process -FilePath "cmd.exe" `
+    -ArgumentList "/c", "`"$COMPOSER`" install --no-interaction --working-dir=`"$ProjectRoot`"" `
     -NoNewWindow -PassThru `
     -RedirectStandardOutput $composerLog `
-    -RedirectStandardError (Join-Path $env:TEMP "capintake-composer-err.log")
+    -RedirectStandardError $composerErr
 
 $spinIdx = 0
 $packageCount = 0
@@ -340,14 +343,15 @@ while (-not $composerProc.HasExited) {
 }
 
 $composerProc.WaitForExit()
-$composerExit = $composerProc.ExitCode
 Write-Host ""
 
-Remove-Item $composerLog -ErrorAction SilentlyContinue
-Remove-Item (Join-Path $env:TEMP "capintake-composer-err.log") -ErrorAction SilentlyContinue
+# Check success: log file should contain autoload generation or "Nothing to install"
+$logContent = Get-Content $composerLog -Raw -ErrorAction SilentlyContinue
+$composerOk = ($logContent -match "autoload|Nothing to install|Package operations: 0")
+Remove-Item $composerLog, $composerErr -ErrorAction SilentlyContinue
 
-if ($composerExit -ne 0) {
-    Write-Err "Composer install failed (exit code $composerExit). Run manually to see details:"
+if (-not $composerOk) {
+    Write-Err "Composer install may have failed. Run manually to check:"
     Write-Err "  $COMPOSER install --no-interaction --working-dir=$ProjectRoot"
     Pop-Location
     exit 1
@@ -374,10 +378,15 @@ if ($envContent -match "APP_KEY=\s*$" -or $envContent -match "APP_KEY=$") {
 Write-Step "Installing Node.js dependencies..."
 
 $npmLog = Join-Path $env:TEMP "capintake-npm.log"
-$npmProc = Start-Process -FilePath $NPM -ArgumentList "ci", "--prefix", $ProjectRoot `
+$npmErr = Join-Path $env:TEMP "capintake-npm-err.log"
+"" | Set-Content $npmLog
+"" | Set-Content $npmErr
+
+$npmProc = Start-Process -FilePath "cmd.exe" `
+    -ArgumentList "/c", "`"$NPM`" ci --prefix `"$ProjectRoot`"" `
     -NoNewWindow -PassThru `
     -RedirectStandardOutput $npmLog `
-    -RedirectStandardError (Join-Path $env:TEMP "capintake-npm-err.log")
+    -RedirectStandardError $npmErr
 
 $spinIdx = 0
 while (-not $npmProc.HasExited) {
@@ -388,11 +397,13 @@ while (-not $npmProc.HasExited) {
 }
 $npmProc.WaitForExit()
 Write-Host ""
-Remove-Item $npmLog, (Join-Path $env:TEMP "capintake-npm-err.log") -ErrorAction SilentlyContinue
 
-if ($npmProc.ExitCode -ne 0) {
+$npmOk = (Get-Content $npmLog -Raw -ErrorAction SilentlyContinue) -match "added|up to date"
+Remove-Item $npmLog, $npmErr -ErrorAction SilentlyContinue
+
+if (-not $npmOk) {
     # Fallback to npm install if ci fails (no lock file)
-    Write-Warn "npm ci failed, trying npm install..."
+    Write-Warn "npm ci did not succeed, trying npm install..."
     & $NPM install --prefix $ProjectRoot 2>&1 | Out-Null
 }
 Write-Ok "Node.js dependencies installed"
@@ -400,10 +411,15 @@ Write-Ok "Node.js dependencies installed"
 Write-Step "Building frontend assets..."
 
 $buildLog = Join-Path $env:TEMP "capintake-build.log"
-$buildProc = Start-Process -FilePath $NPM -ArgumentList "run", "build", "--prefix", $ProjectRoot `
+$buildErr = Join-Path $env:TEMP "capintake-build-err.log"
+"" | Set-Content $buildLog
+"" | Set-Content $buildErr
+
+$buildProc = Start-Process -FilePath "cmd.exe" `
+    -ArgumentList "/c", "`"$NPM`" run build --prefix `"$ProjectRoot`"" `
     -NoNewWindow -PassThru `
     -RedirectStandardOutput $buildLog `
-    -RedirectStandardError (Join-Path $env:TEMP "capintake-build-err.log")
+    -RedirectStandardError $buildErr
 
 $spinIdx = 0
 while (-not $buildProc.HasExited) {
@@ -414,10 +430,12 @@ while (-not $buildProc.HasExited) {
 }
 $buildProc.WaitForExit()
 Write-Host ""
-Remove-Item $buildLog, (Join-Path $env:TEMP "capintake-build-err.log") -ErrorAction SilentlyContinue
 
-if ($buildProc.ExitCode -ne 0) {
-    Write-Err "Asset build failed. Run manually: $NPM run build --prefix $ProjectRoot"
+$buildOk = (Get-Content $buildLog -Raw -ErrorAction SilentlyContinue) -match "built in|vite"
+Remove-Item $buildLog, $buildErr -ErrorAction SilentlyContinue
+
+if (-not $buildOk) {
+    Write-Err "Asset build may have failed. Run manually: $NPM run build --prefix $ProjectRoot"
     Pop-Location
     exit 1
 }
