@@ -173,6 +173,12 @@ class SetupWizard extends Page
                 ->schema([
                     Section::make()
                         ->schema([
+                            ColorPicker::make('primary_color')
+                                ->label('Primary Color')
+                                ->default('#3b82f6')
+                                ->lazy()
+                                ->helperText('This color will be used throughout the application for buttons, links, and highlights.'),
+
                             FileUpload::make('logo')
                                 ->label('Agency Logo')
                                 ->image()
@@ -180,12 +186,7 @@ class SetupWizard extends Page
                                 ->disk('public')
                                 ->maxSize(2048)
                                 ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/svg+xml'])
-                                ->helperText('Upload a PNG, JPG, or SVG file (max 2MB).'),
-
-                            ColorPicker::make('primary_color')
-                                ->label('Primary Color')
-                                ->default('#3b82f6')
-                                ->helperText('This color will be used throughout the application for buttons, links, and highlights.'),
+                                ->helperText('Upload a PNG, JPG, or SVG file (max 2MB). Pick your color first to avoid upload issues.'),
                         ]),
                 ]),
         ];
