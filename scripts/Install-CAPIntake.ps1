@@ -223,6 +223,12 @@ if (-not $NPM) {
     }
 }
 
+# Prefer npm.cmd over npm.ps1 — cmd.exe /c can only run .cmd/.bat, not .ps1
+if ($NPM -match '\.ps1$') {
+    $npmCmd = $NPM -replace '\.ps1$', '.cmd'
+    if (Test-Path $npmCmd) { $NPM = $npmCmd }
+}
+
 # ---------------------------------------------------------------------------
 # 4. Check required PHP extensions
 # ---------------------------------------------------------------------------
