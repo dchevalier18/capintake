@@ -298,70 +298,59 @@ Set-Content $envFile $envContent -NoNewline
 # ---------------------------------------------------------------------------
 Write-Step "Installing PHP dependencies (this may take a few minutes)..."
 
-$composerJob = Start-Job -ScriptBlock {
-    param($comp, $root)
-    & $comp install --no-interaction --working-dir=$root 2>&1
-} -ArgumentList $COMPOSER, $ProjectRoot
-
 $spinner = @('|', '/', '-', '\')
+$composerLog = Join-Path $env:TEMP "capintake-composer.log"
+"" | Set-Content $composerLog
+
+$composerProc = Start-Process -FilePath $COMPOSER `
+    -ArgumentList "install", "--no-interaction", "--working-dir=$ProjectRoot" `
+    -NoNewWindow -PassThru `
+    -RedirectStandardOutput $composerLog `
+    -RedirectStandardError (Join-Path $env:TEMP "capintake-composer-err.log")
+
 $spinIdx = 0
 $packageCount = 0
-$lastActivity = Get-Date
-$timeoutMinutes = 10
+$lastSize = 0
 
-while ($composerJob.State -eq 'Running') {
-    # Check for new output
-    $output = Receive-Job $composerJob
-    if ($output) {
-        $lastActivity = Get-Date
-        foreach ($line in $output) {
-            $lineStr = "$line"
-            if ($lineStr -match "Installing\s+(\S+)") {
-                $packageCount++
-                $pkgName = $Matches[1]
-                Write-Host "`r    $($spinner[$spinIdx % 4]) Installing packages... ($packageCount so far: $pkgName)        " -NoNewline -ForegroundColor DarkGray
-            } elseif ($lineStr -match "Downloading") {
-                Write-Host "`r    $($spinner[$spinIdx % 4]) Downloading packages...                                        " -NoNewline -ForegroundColor DarkGray
-            } elseif ($lineStr -match "Nothing to install") {
-                Write-Host "`r    $($spinner[$spinIdx % 4]) Nothing to install (already up to date)                         " -NoNewline -ForegroundColor DarkGray
+while (-not $composerProc.HasExited) {
+    $elapsed = [math]::Round(((Get-Date) - $composerProc.StartTime).TotalSeconds)
+
+    # Check log file for new content
+    try {
+        $currentSize = (Get-Item $composerLog -ErrorAction SilentlyContinue).Length
+        if ($currentSize -gt $lastSize) {
+            $newLines = Get-Content $composerLog -Tail 5 -ErrorAction SilentlyContinue
+            foreach ($line in $newLines) {
+                if ($line -match "Installing\s+(\S+)") {
+                    $packageCount++
+                    $pkgName = $Matches[1]
+                }
             }
+            $lastSize = $currentSize
         }
+    } catch { }
+
+    if ($packageCount -gt 0) {
+        Write-Host "`r    $($spinner[$spinIdx % 4]) Installed $packageCount packages so far... (${elapsed}s)                    " -NoNewline -ForegroundColor DarkGray
     } else {
-        # No output, show spinner with elapsed time
-        $elapsed = [math]::Round(((Get-Date) - $lastActivity).TotalSeconds)
-        Write-Host "`r    $($spinner[$spinIdx % 4]) Working... (${elapsed}s since last activity)                      " -NoNewline -ForegroundColor DarkGray
+        Write-Host "`r    $($spinner[$spinIdx % 4]) Resolving dependencies... (${elapsed}s)                                    " -NoNewline -ForegroundColor DarkGray
     }
     $spinIdx++
-
-    # Timeout check
-    $totalElapsed = ((Get-Date) - $lastActivity).TotalMinutes
-    if ($totalElapsed -gt $timeoutMinutes) {
-        Write-Host ""
-        Write-Err "Composer appears to be stuck (no output for $timeoutMinutes minutes)."
-        Write-Err "Try running manually: $COMPOSER install --no-interaction --working-dir=$ProjectRoot"
-        Stop-Job $composerJob
-        Remove-Job $composerJob
-        Pop-Location
-        exit 1
-    }
-
-    Start-Sleep -Milliseconds 250
+    Start-Sleep -Milliseconds 300
 }
 
-# Collect any remaining output
-$finalOutput = Receive-Job $composerJob
-Remove-Job $composerJob
+$composerProc.WaitForExit()
+$composerExit = $composerProc.ExitCode
 Write-Host ""
 
-if ($LASTEXITCODE -ne 0 -and $packageCount -eq 0) {
-    # Check if it actually failed by looking for error indicators
-    $allOutput = if ($finalOutput) { $finalOutput -join "`n" } else { "" }
-    if ($allOutput -match "error|failed|abort" -and $allOutput -notmatch "0 errors") {
-        Write-Err "Composer install failed. Run manually to see details:"
-        Write-Err "  $COMPOSER install --no-interaction --working-dir=$ProjectRoot"
-        Pop-Location
-        exit 1
-    }
+Remove-Item $composerLog -ErrorAction SilentlyContinue
+Remove-Item (Join-Path $env:TEMP "capintake-composer-err.log") -ErrorAction SilentlyContinue
+
+if ($composerExit -ne 0) {
+    Write-Err "Composer install failed (exit code $composerExit). Run manually to see details:"
+    Write-Err "  $COMPOSER install --no-interaction --working-dir=$ProjectRoot"
+    Pop-Location
+    exit 1
 }
 Write-Ok "PHP dependencies installed ($packageCount packages)"
 
@@ -384,46 +373,50 @@ if ($envContent -match "APP_KEY=\s*$" -or $envContent -match "APP_KEY=$") {
 # ---------------------------------------------------------------------------
 Write-Step "Installing Node.js dependencies..."
 
-$npmJob = Start-Job -ScriptBlock {
-    param($npm, $root)
-    & $npm ci --prefix $root 2>&1
-    if ($LASTEXITCODE -ne 0) { & $npm install --prefix $root 2>&1 }
-} -ArgumentList $NPM, $ProjectRoot
+$npmLog = Join-Path $env:TEMP "capintake-npm.log"
+$npmProc = Start-Process -FilePath $NPM -ArgumentList "ci", "--prefix", $ProjectRoot `
+    -NoNewWindow -PassThru `
+    -RedirectStandardOutput $npmLog `
+    -RedirectStandardError (Join-Path $env:TEMP "capintake-npm-err.log")
 
 $spinIdx = 0
-$startTime = Get-Date
-while ($npmJob.State -eq 'Running') {
-    $elapsed = [math]::Round(((Get-Date) - $startTime).TotalSeconds)
-    Write-Host "`r    $($spinner[$spinIdx % 4]) Installing npm packages... (${elapsed}s elapsed)                  " -NoNewline -ForegroundColor DarkGray
+while (-not $npmProc.HasExited) {
+    $elapsed = [math]::Round(((Get-Date) - $npmProc.StartTime).TotalSeconds)
+    Write-Host "`r    $($spinner[$spinIdx % 4]) Installing npm packages... (${elapsed}s elapsed)                        " -NoNewline -ForegroundColor DarkGray
     $spinIdx++
-    Start-Sleep -Milliseconds 250
+    Start-Sleep -Milliseconds 300
 }
-Receive-Job $npmJob | Out-Null
-Remove-Job $npmJob
+$npmProc.WaitForExit()
 Write-Host ""
+Remove-Item $npmLog, (Join-Path $env:TEMP "capintake-npm-err.log") -ErrorAction SilentlyContinue
+
+if ($npmProc.ExitCode -ne 0) {
+    # Fallback to npm install if ci fails (no lock file)
+    Write-Warn "npm ci failed, trying npm install..."
+    & $NPM install --prefix $ProjectRoot 2>&1 | Out-Null
+}
 Write-Ok "Node.js dependencies installed"
 
 Write-Step "Building frontend assets..."
 
-$buildJob = Start-Job -ScriptBlock {
-    param($npm, $root)
-    & $npm run build --prefix $root 2>&1
-} -ArgumentList $NPM, $ProjectRoot
+$buildLog = Join-Path $env:TEMP "capintake-build.log"
+$buildProc = Start-Process -FilePath $NPM -ArgumentList "run", "build", "--prefix", $ProjectRoot `
+    -NoNewWindow -PassThru `
+    -RedirectStandardOutput $buildLog `
+    -RedirectStandardError (Join-Path $env:TEMP "capintake-build-err.log")
 
 $spinIdx = 0
-$startTime = Get-Date
-while ($buildJob.State -eq 'Running') {
-    $elapsed = [math]::Round(((Get-Date) - $startTime).TotalSeconds)
-    Write-Host "`r    $($spinner[$spinIdx % 4]) Building CSS and JavaScript... (${elapsed}s elapsed)              " -NoNewline -ForegroundColor DarkGray
+while (-not $buildProc.HasExited) {
+    $elapsed = [math]::Round(((Get-Date) - $buildProc.StartTime).TotalSeconds)
+    Write-Host "`r    $($spinner[$spinIdx % 4]) Building CSS and JavaScript... (${elapsed}s elapsed)                    " -NoNewline -ForegroundColor DarkGray
     $spinIdx++
-    Start-Sleep -Milliseconds 250
+    Start-Sleep -Milliseconds 300
 }
-$buildOutput = Receive-Job $buildJob
-$buildExit = $buildJob.ChildJobs[0].JobStateInfo.State
-Remove-Job $buildJob
+$buildProc.WaitForExit()
 Write-Host ""
+Remove-Item $buildLog, (Join-Path $env:TEMP "capintake-build-err.log") -ErrorAction SilentlyContinue
 
-if ($buildExit -eq 'Failed') {
+if ($buildProc.ExitCode -ne 0) {
     Write-Err "Asset build failed. Run manually: $NPM run build --prefix $ProjectRoot"
     Pop-Location
     exit 1
