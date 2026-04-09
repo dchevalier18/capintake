@@ -9,7 +9,7 @@
 #>
 param(
     [string]$ProjectRoot = (Split-Path -Parent $PSScriptRoot),
-    [int]$Port = 8000
+    [int]$Port = 8001
 )
 
 Set-StrictMode -Version Latest
