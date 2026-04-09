@@ -9,6 +9,7 @@ use App\Models\AgencySetting;
 use App\Models\Program;
 use App\Models\User;
 use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -168,7 +169,7 @@ class SetupWizard extends Page
 
             Step::make('Branding')
                 ->icon('heroicon-o-paint-brush')
-                ->description('Color scheme')
+                ->description('Logo and color scheme')
                 ->schema([
                     Section::make()
                         ->schema([
@@ -178,9 +179,14 @@ class SetupWizard extends Page
                                 ->lazy()
                                 ->helperText('This color will be used throughout the application for buttons, links, and highlights.'),
 
-                            Placeholder::make('logo_info')
-                                ->content('You can upload your agency logo after setup is complete, from the admin settings page.')
-                                ->columnSpanFull(),
+                            FileUpload::make('logo')
+                                ->label('Agency Logo')
+                                ->image()
+                                ->directory('logos')
+                                ->disk('public')
+                                ->maxSize(2048)
+                                ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/svg+xml'])
+                                ->helperText('Upload a PNG, JPG, or SVG file (max 2MB).'),
                         ]),
                 ]),
         ];
@@ -397,6 +403,12 @@ class SetupWizard extends Page
                 'mail_from_address' => $data['mail_from_address'] ?? null,
                 'mail_from_name' => $data['mail_from_name'] ?? $data['agency_name'],
             ]);
+        }
+
+        // Handle logo upload
+        if (! empty($data['logo'])) {
+            $logoPath = is_array($data['logo']) ? reset($data['logo']) : $data['logo'];
+            $settings->logo_path = $logoPath;
         }
 
         $settings->save();
