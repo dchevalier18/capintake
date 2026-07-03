@@ -12,12 +12,12 @@ This is the first open-source alternative built specifically for the CAP network
 
 Deploy your own instance with one click:
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/capintake/capintake)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/dchevalier18/capintake)
 
 Or pull the pre-built Docker image:
 
 ```bash
-docker pull ghcr.io/capintake/capintake:latest
+docker pull ghcr.io/dchevalier18/capintake:latest
 ```
 
 See the [Deployment Guide](docs/DEPLOYMENT.md) for Docker Compose, VPS, and other options.
@@ -101,7 +101,7 @@ After install, double-click the desktop shortcut to start the app. The setup wiz
 
 ```bash
 # Clone the repository
-git clone https://github.com/capintake/capintake.git
+git clone https://github.com/dchevalier18/capintake.git
 cd capintake
 
 # One-command setup: install deps, generate key, migrate, seed, build assets

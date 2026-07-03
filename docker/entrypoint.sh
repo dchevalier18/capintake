@@ -3,6 +3,21 @@ set -e
 
 echo "==> CAPIntake container starting..."
 
+# On Render, derive APP_URL (with https:// scheme) from the injected
+# RENDER_EXTERNAL_URL so asset and redirect URLs are generated correctly.
+if [ -n "$RENDER_EXTERNAL_URL" ] && [ -z "$APP_URL" ]; then
+    export APP_URL="$RENDER_EXTERNAL_URL"
+    echo "==> APP_URL set from RENDER_EXTERNAL_URL: $APP_URL"
+fi
+
+# Render the standalone nginx config for the container's HTTP port.
+# Only ${PORT} is substituted so nginx's own $variables are untouched.
+if [ -f /etc/nginx/templates/capintake.conf.template ]; then
+    export PORT="${PORT:-8080}"
+    envsubst '$PORT' < /etc/nginx/templates/capintake.conf.template > /etc/nginx/conf.d/capintake.conf
+    echo "==> nginx configured to listen on port $PORT"
+fi
+
 # Wait for database to be ready (works with MySQL and PostgreSQL)
 if [ -n "$DB_HOST" ]; then
     echo "==> Waiting for database at $DB_HOST..."
