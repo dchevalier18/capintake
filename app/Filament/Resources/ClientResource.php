@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Enums\EnrollmentStatus;
+use App\Enums\IncomeFrequency;
+use App\Enums\IntakeStatus;
 use App\Filament\Resources\ClientResource\Pages;
 use App\Filament\Resources\ClientResource\RelationManagers;
 use App\Models\Client;
+use App\Models\Household;
 use App\Models\Program;
 use App\Services\Lookup;
-use App\Models\Household;
-use Illuminate\Database\Eloquent\Builder;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -25,16 +29,16 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Flex;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\ViewAction;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Enums\TextSize;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class ClientResource extends Resource
 {
@@ -48,12 +52,12 @@ class ClientResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'last_name';
 
-    public static function getGlobalSearchResultTitle(\Illuminate\Database\Eloquent\Model $record): string
+    public static function getGlobalSearchResultTitle(Model $record): string
     {
         return $record->fullName();
     }
 
-    public static function getRecordTitle(?\Illuminate\Database\Eloquent\Model $record): ?string
+    public static function getRecordTitle(?Model $record): ?string
     {
         return $record?->fullName();
     }
@@ -118,6 +122,7 @@ class ClientResource extends Resource
                     ->columns(3),
 
                 Section::make('Demographics')
+                    ->description('All fields optional — "Unknown/not reported" is a valid answer for CSBG reporting.')
                     ->schema([
                         Select::make('gender')
                             ->options(fn () => Lookup::options('gender')),
@@ -128,12 +133,39 @@ class ClientResource extends Resource
                         Select::make('ethnicity')
                             ->options(fn () => Lookup::options('ethnicity')),
 
+                        Select::make('education_level')
+                            ->label('Education Level')
+                            ->options(fn () => Lookup::options('education_level')),
+
+                        Select::make('employment_status')
+                            ->label('Work Status')
+                            ->helperText('Collected for individuals 18+')
+                            ->options(fn () => Lookup::options('employment_status')),
+
+                        Select::make('military_status')
+                            ->label('Military Status')
+                            ->options(fn () => Lookup::options('military_status')),
+
+                        Select::make('health_insurance_status')
+                            ->label('Health Insurance')
+                            ->options(fn () => Lookup::options('health_insurance_status'))
+                            ->live(),
+
+                        Select::make('health_insurance_source')
+                            ->label('Insurance Source')
+                            ->options(fn () => Lookup::options('health_insurance_source'))
+                            ->visible(fn (Get $get): bool => $get('health_insurance_status') === 'yes'),
+
                         Toggle::make('is_veteran')
                             ->label('Veteran')
                             ->default(false),
 
                         Toggle::make('is_disabled')
-                            ->label('Disabled')
+                            ->label('Disabling Condition')
+                            ->default(false),
+
+                        Toggle::make('is_disconnected_youth')
+                            ->label('Disconnected Youth (14-24, not working or in school)')
                             ->default(false),
 
                         Toggle::make('is_head_of_household')
@@ -205,7 +237,7 @@ class ClientResource extends Resource
                         TextEntry::make('age_dob')
                             ->label('Age / DOB')
                             ->getStateUsing(fn (Client $record): string => $record->date_of_birth
-                                ? 'Age ' . $record->age() . ' (DOB: ' . $record->date_of_birth->format('m/d/Y') . ')'
+                                ? 'Age '.$record->age().' (DOB: '.$record->date_of_birth->format('m/d/Y').')'
                                 : 'Unknown'),
                         TextEntry::make('phone')
                             ->label('Phone'),
@@ -258,6 +290,7 @@ class ClientResource extends Resource
                                                 if ($record->birth_year) {
                                                     return (string) (now()->year - $record->birth_year);
                                                 }
+
                                                 return '—';
                                             }),
                                     ])
@@ -288,6 +321,29 @@ class ClientResource extends Resource
                                         'ar' => 'Arabic',
                                         default => $state ?? '—',
                                     }),
+                                TextEntry::make('education_level')
+                                    ->label('Education')
+                                    ->badge()
+                                    ->formatStateUsing(fn (?string $state): string => $state ? Lookup::label('education_level', $state) ?? ucfirst(str_replace('_', ' ', $state)) : '—'),
+                                TextEntry::make('employment_status')
+                                    ->label('Work Status')
+                                    ->badge()
+                                    ->formatStateUsing(fn (?string $state): string => $state ? Lookup::label('employment_status', $state) ?? ucfirst(str_replace('_', ' ', $state)) : '—'),
+                                TextEntry::make('military_status')
+                                    ->label('Military Status')
+                                    ->badge()
+                                    ->formatStateUsing(fn (?string $state): string => $state ? Lookup::label('military_status', $state) ?? ucfirst(str_replace('_', ' ', $state)) : '—'),
+                                TextEntry::make('health_insurance')
+                                    ->label('Health Insurance')
+                                    ->badge()
+                                    ->getStateUsing(function (Client $record): string {
+                                        $status = Lookup::label('health_insurance_status', $record->health_insurance_status) ?? '—';
+                                        if ($record->health_insurance_status === 'yes' && $record->health_insurance_source) {
+                                            $status .= ' ('.(Lookup::label('health_insurance_source', $record->health_insurance_source) ?? $record->health_insurance_source).')';
+                                        }
+
+                                        return $status;
+                                    }),
                             ])
                             ->columns(4)
                             ->collapsible()
@@ -301,7 +357,7 @@ class ClientResource extends Resource
                             ->schema([
                                 TextEntry::make('total_income')
                                     ->label('Total Household Income')
-                                    ->getStateUsing(fn (Client $record): string => '$' . number_format($record->household?->totalAnnualIncome() ?? 0, 2)),
+                                    ->getStateUsing(fn (Client $record): string => '$'.number_format($record->household?->totalAnnualIncome() ?? 0, 2)),
                                 TextEntry::make('hh_size')
                                     ->label('HH Size')
                                     ->getStateUsing(fn (Client $record): string => (string) ($record->household?->household_size ?? '—')),
@@ -315,7 +371,7 @@ class ClientResource extends Resource
                                         } catch (\Throwable) {
                                         }
 
-                                        return $fpl !== null ? $fpl . '%' : 'N/A';
+                                        return $fpl !== null ? $fpl.'%' : 'N/A';
                                     })
                                     ->color(function (Client $record): string {
                                         $fpl = null;
@@ -341,9 +397,9 @@ class ClientResource extends Resource
                                             ->formatStateUsing(fn (?string $state): string => $state ? Lookup::label('income_source', $state) ?? ucfirst(str_replace('_', ' ', $state)) : '—'),
                                         TextEntry::make('annual_amount')
                                             ->label('Annual')
-                                            ->formatStateUsing(fn ($state): string => '$' . number_format((float) $state, 2)),
+                                            ->formatStateUsing(fn ($state): string => '$'.number_format((float) $state, 2)),
                                         TextEntry::make('frequency')
-                                            ->formatStateUsing(fn ($state): string => $state instanceof \App\Enums\IncomeFrequency ? $state->label() : (string) ($state ?? '—')),
+                                            ->formatStateUsing(fn ($state): string => $state instanceof IncomeFrequency ? $state->label() : (string) ($state ?? '—')),
                                     ])
                                     ->table([
                                         TableColumn::make('Source'),
@@ -419,7 +475,7 @@ class ClientResource extends Resource
                                     ->label('Provider'),
                                 TextEntry::make('value')
                                     ->label('Value')
-                                    ->formatStateUsing(fn ($state): string => $state ? '$' . number_format((float) $state, 2) : '—'),
+                                    ->formatStateUsing(fn ($state): string => $state ? '$'.number_format((float) $state, 2) : '—'),
                             ])
                             ->columns(5),
                     ])
@@ -521,7 +577,7 @@ class ClientResource extends Resource
                         } catch (\Throwable) {
                         }
 
-                        return $fpl !== null ? $fpl . '%' : 'N/A';
+                        return $fpl !== null ? $fpl.'%' : 'N/A';
                     })
                     ->color(function (Client $record): string {
                         $fpl = null;
@@ -576,7 +632,7 @@ class ClientResource extends Resource
 
                 SelectFilter::make('county')
                     ->label('County')
-                    ->options(fn (): array => \App\Models\Household::whereNotNull('county')
+                    ->options(fn (): array => Household::whereNotNull('county')
                         ->where('county', '!=', '')
                         ->distinct()
                         ->orderBy('county')
@@ -606,17 +662,20 @@ class ClientResource extends Resource
             RelationManagers\EnrollmentsRelationManager::class,
             RelationManagers\ServiceRecordsRelationManager::class,
             RelationManagers\IncomeRecordsRelationManager::class,
+            RelationManagers\NonCashBenefitsRelationManager::class,
             RelationManagers\OutcomesRelationManager::class,
             RelationManagers\CasePlansRelationManager::class,
+            RelationManagers\SelfSufficiencyAssessmentsRelationManager::class,
             RelationManagers\ReferralsRelationManager::class,
             RelationManagers\FollowUpsRelationManager::class,
+            RelationManagers\DocumentsRelationManager::class,
         ];
     }
 
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->where('intake_status', \App\Enums\IntakeStatus::Complete)
+            ->where('intake_status', IntakeStatus::Complete)
             ->with(['activeEnrollments.program', 'serviceRecords', 'household']);
     }
 

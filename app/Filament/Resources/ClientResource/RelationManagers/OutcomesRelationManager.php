@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace App\Filament\Resources\ClientResource\RelationManagers;
 
 use App\Enums\OutcomeStatus;
-use App\Models\NpiGoal;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
-use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -27,7 +30,7 @@ class OutcomesRelationManager extends RelationManager
             ->components([
                 Select::make('npi_indicator_id')
                     ->label('NPI Indicator')
-                    ->relationship('indicator', 'name')
+                    ->relationship('indicator', 'name', fn ($query) => $query->forVersion())
                     ->getOptionLabelFromRecordUsing(fn ($record): string => "{$record->indicator_code} - {$record->name}")
                     ->required()
                     ->searchable()
@@ -105,15 +108,15 @@ class OutcomesRelationManager extends RelationManager
                     )),
             ])
             ->headerActions([
-                \Filament\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->actions([
-                \Filament\Actions\EditAction::make(),
-                \Filament\Actions\DeleteAction::make(),
+                EditAction::make(),
+                DeleteAction::make(),
             ])
             ->bulkActions([
-                \Filament\Actions\BulkActionGroup::make([
-                    \Filament\Actions\DeleteBulkAction::make(),
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('achieved_date', 'desc');

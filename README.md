@@ -113,34 +113,25 @@ composer serve
 
 The application will be available at `http://localhost:8000`.
 
-### Default Login
+### First Run
 
 After running `php artisan migrate --seed`, the database is populated with:
 
-- **Federal Poverty Level guidelines** (2025 HHS data for continental US, Alaska, and Hawaii)
-- **NPI Goals and Indicators** (all 7 CSBG National Performance Indicator goals with their indicators)
-- **Sample Programs**: Community Services Block Grant (CSBG), Emergency Services, and Weatherization Assistance -- each with pre-configured services
-- **NPI-to-Service mappings** linking services to their corresponding NPI indicators
+- **Federal Poverty Level guidelines** (official 2025 and 2026 HHS data for continental US, Alaska, and Hawaii)
+- **CSBG Annual Report taxonomies**: all FNPI goals/indicators, SRV service categories, CNPI community indicators, and STR strategies (Annual Report v2.1, with the schema ready for v3.0)
+- **Sample Programs**: Community Services Block Grant (CSBG), Emergency Services, and Weatherization Assistance -- each with pre-configured services and NPI/SRV mappings
 
-To create your first admin user, use Laravel Tinker:
+Open `http://localhost:8000` and the **Setup Wizard** walks you through agency identity, branding, your first admin account, programs, fiscal year, and email settings — no command line needed.
+
+### Demo Data
+
+To explore the system with a realistic agency year (clients, households, income, services, outcomes, and a fully populated CSBG Annual Report), seed the demo dataset on a fresh install:
 
 ```bash
-php artisan tinker
+php artisan db:seed --class=DemoDataSeeder
 ```
 
-```php
-use App\Models\User;
-use App\Enums\UserRole;
-
-User::create([
-    'name' => 'Admin User',
-    'email' => 'admin@example.com',
-    'password' => bcrypt('password'),
-    'role' => UserRole::Admin,
-]);
-```
-
-Then log in at `http://localhost:8000/admin` with those credentials.
+The demo seeder refuses to run in production or on a database that already has clients.
 
 ### Development Mode
 

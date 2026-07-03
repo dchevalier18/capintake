@@ -43,7 +43,7 @@ trait Auditable
             $filtered = $model->filterAuditFields($changed);
             $filteredOriginal = $model->filterAuditFields($original);
 
-            if (!empty($filtered)) {
+            if (! empty($filtered)) {
                 $model->recordAudit('updated', $filteredOriginal, $filtered);
             }
         });

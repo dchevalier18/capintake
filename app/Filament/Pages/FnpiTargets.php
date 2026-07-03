@@ -6,7 +6,6 @@ namespace App\Filament\Pages;
 
 use App\Enums\UserRole;
 use App\Models\FnpiTarget;
-use App\Models\NpiGoal;
 use App\Models\NpiIndicator;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -49,7 +48,7 @@ class FnpiTargets extends Page
 
     protected function loadTargets(): void
     {
-        $indicators = NpiIndicator::whereNull('parent_indicator_id')
+        $indicators = NpiIndicator::forVersion()->whereNull('parent_indicator_id')
             ->with('goal')
             ->orderBy('npi_goal_id')
             ->orderBy('indicator_code')

@@ -10,6 +10,9 @@ use App\Filament\Resources\OutcomeResource\Pages;
 use App\Models\Client;
 use App\Models\Enrollment;
 use App\Models\Outcome;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -18,9 +21,6 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -58,7 +58,7 @@ class OutcomeResource extends Resource
 
                         Select::make('npi_indicator_id')
                             ->label('NPI Indicator')
-                            ->relationship('indicator', 'name')
+                            ->relationship('indicator', 'name', fn ($query) => $query->forVersion())
                             ->getOptionLabelFromRecordUsing(fn ($record): string => "{$record->indicator_code} - {$record->name}")
                             ->required()
                             ->searchable()

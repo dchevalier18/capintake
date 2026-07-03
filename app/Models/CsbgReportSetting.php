@@ -20,6 +20,7 @@ class CsbgReportSetting extends Model
         'reporting_period',
         'current_fiscal_year',
         'total_csbg_allocation',
+        'report_version',
         'additional_settings',
     ];
 

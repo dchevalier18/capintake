@@ -58,7 +58,7 @@ it('client with services in multiple NPI categories counts once per category but
     makeServiceRecord('CSBG-VITA', $client, '2025-06-01');
     makeServiceRecord('EMRG-FOOD', $client, '2025-06-01');
 
-    $npiService = new NpiReportService();
+    $npiService = new NpiReportService;
     $report = $npiService->generate('2025-01-01', '2025-12-31');
 
     // Client should appear once in Goal 3
@@ -87,7 +87,7 @@ it('service on Sep 30 is included in FFY, Oct 1 of next year is excluded', funct
     makeServiceRecord('CSBG-VITA', $client, '2025-09-30'); // included
     makeServiceRecord('CSBG-VITA', $client, '2025-10-01'); // excluded (next FFY)
 
-    $npiService = new NpiReportService();
+    $npiService = new NpiReportService;
     $report = $npiService->generate('2024-10-01', '2025-09-30');
 
     $goal3 = $report->firstWhere('goal_number', 3);
@@ -102,7 +102,7 @@ it('service on Oct 1 start of FFY is included', function () {
 
     makeServiceRecord('CSBG-VITA', $client, '2024-10-01'); // first day of FFY 2025
 
-    $npiService = new NpiReportService();
+    $npiService = new NpiReportService;
     $report = $npiService->generate('2024-10-01', '2025-09-30');
 
     $goal3 = $report->firstWhere('goal_number', 3);
@@ -116,7 +116,7 @@ it('service on Oct 1 start of FFY is included', function () {
 // =========================================================================
 
 it('empty database produces a valid report with all zeros — no errors', function () {
-    $npiService = new NpiReportService();
+    $npiService = new NpiReportService;
     $report = $npiService->generate('2025-01-01', '2025-12-31');
 
     // Should have all 7 goals
@@ -140,7 +140,7 @@ it('empty database produces a valid report with all zeros — no errors', functi
 });
 
 it('Module 4 Section C with empty database produces valid structure', function () {
-    $csbgService = new CsbgReportService();
+    $csbgService = new CsbgReportService;
     $report = $csbgService->module4SectionC('2025-01-01', '2025-12-31');
 
     expect($report['total_unduplicated_individuals'])->toBe(0)
@@ -173,7 +173,7 @@ it('household with no income records shows as unknown in FPL brackets', function
         'service_date' => '2025-06-01',
     ]);
 
-    $report = (new CsbgReportService())->fplBracketBreakdown('2025-01-01', '2025-12-31');
+    $report = (new CsbgReportService)->fplBracketBreakdown('2025-01-01', '2025-12-31');
 
     expect($report['unknown'])->toBe(1);
 });
@@ -198,7 +198,7 @@ it('client exactly at 100% FPL falls in 76-100% bracket', function () {
         'service_date' => '2025-06-01',
     ]);
 
-    $report = (new CsbgReportService())->fplBracketBreakdown('2025-01-01', '2025-12-31');
+    $report = (new CsbgReportService)->fplBracketBreakdown('2025-01-01', '2025-12-31');
 
     expect($report['76-100%'])->toBe(1);
 });
@@ -209,7 +209,7 @@ it('client exactly at 100% FPL falls in 76-100% bracket', function () {
 
 it('SRV report works with no SRV category data seeded', function () {
     // No CsbgSrvCategorySeeder run
-    $report = (new CsbgReportService())->module4SectionB('2025-01-01', '2025-12-31');
+    $report = (new CsbgReportService)->module4SectionB('2025-01-01', '2025-12-31');
 
     // Should return empty collection (no categories to report on)
     expect($report)->toBeEmpty();
@@ -218,7 +218,7 @@ it('SRV report works with no SRV category data seeded', function () {
 it('SRV report with categories seeded but no services shows all zeros', function () {
     $this->seed(CsbgSrvCategorySeeder::class);
 
-    $report = (new CsbgReportService())->module4SectionB('2025-01-01', '2025-12-31');
+    $report = (new CsbgReportService)->module4SectionB('2025-01-01', '2025-12-31');
 
     expect($report)->not->toBeEmpty();
 

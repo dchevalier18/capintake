@@ -25,16 +25,16 @@ class CsbgReportPdfExporter
         $period = $settings?->reporting_period ?? 'oct_sep';
 
         [$this->startDate, $this->endDate] = match ($period) {
-            'oct_sep' => [($fiscalYear - 1) . '-10-01', $fiscalYear . '-09-30'],
-            'jul_jun' => [($fiscalYear - 1) . '-07-01', $fiscalYear . '-06-30'],
-            'jan_dec' => [$fiscalYear . '-01-01', $fiscalYear . '-12-31'],
-            default => [($fiscalYear - 1) . '-10-01', $fiscalYear . '-09-30'],
+            'oct_sep' => [($fiscalYear - 1).'-10-01', $fiscalYear.'-09-30'],
+            'jul_jun' => [($fiscalYear - 1).'-07-01', $fiscalYear.'-06-30'],
+            'jan_dec' => [$fiscalYear.'-01-01', $fiscalYear.'-12-31'],
+            default => [($fiscalYear - 1).'-10-01', $fiscalYear.'-09-30'],
         };
     }
 
     public function generate(): \Barryvdh\DomPDF\PDF
     {
-        $service = new CsbgReportService();
+        $service = new CsbgReportService;
         $agency = $this->getAgencyInfo();
 
         $data = [

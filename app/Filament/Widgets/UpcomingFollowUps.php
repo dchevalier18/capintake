@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Filament\Widgets;
 
-use App\Enums\FollowUpStatus;
 use App\Models\FollowUp;
 use Filament\Widgets\Widget;
 
@@ -14,7 +13,7 @@ class UpcomingFollowUps extends Widget
 
     protected static ?int $sort = 6;
 
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     public ?array $upcoming = null;
 

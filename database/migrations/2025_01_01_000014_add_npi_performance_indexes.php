@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -46,12 +47,12 @@ return new class extends Migration
     protected function hasIndex(string $table, string $indexName): bool
     {
         if (config('database.default') === 'sqlite') {
-            return (bool) \Illuminate\Support\Facades\DB::selectOne(
+            return (bool) DB::selectOne(
                 "SELECT 1 FROM sqlite_master WHERE type='index' AND name=? AND tbl_name=?",
                 [$indexName, $table],
             );
         }
 
-        return \Illuminate\Support\Facades\Schema::hasIndex($table, $indexName);
+        return Schema::hasIndex($table, $indexName);
     }
 };

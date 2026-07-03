@@ -8,14 +8,14 @@ use App\Filament\Resources\HouseholdResource\Pages;
 use App\Filament\Resources\HouseholdResource\RelationManagers;
 use App\Models\Household;
 use App\Services\Lookup;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -71,6 +71,10 @@ class HouseholdResource extends Resource
                         Select::make('housing_type')
                             ->options(fn () => Lookup::options('housing_type')),
 
+                        Select::make('household_type')
+                            ->label('Household Type')
+                            ->options(fn () => Lookup::options('household_type')),
+
                         TextInput::make('household_size')
                             ->numeric()
                             ->required()
@@ -108,6 +112,13 @@ class HouseholdResource extends Resource
                     ->badge()
                     ->sortable(),
 
+                TextColumn::make('household_type')
+                    ->label('Household Type')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => $state ? Lookup::label('household_type', $state) ?? ucfirst(str_replace('_', ' ', $state)) : '—')
+                    ->sortable()
+                    ->toggleable(),
+
                 TextColumn::make('clients_count')
                     ->label('Clients')
                     ->counts('clients')
@@ -121,6 +132,9 @@ class HouseholdResource extends Resource
             ->filters([
                 SelectFilter::make('housing_type')
                     ->options(fn () => Lookup::options('housing_type')),
+
+                SelectFilter::make('household_type')
+                    ->options(fn () => Lookup::options('household_type')),
 
                 SelectFilter::make('county')
                     ->options(fn (): array => Household::query()

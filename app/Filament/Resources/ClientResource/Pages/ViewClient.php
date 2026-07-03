@@ -9,8 +9,11 @@ use App\Enums\IncomeFrequency;
 use App\Filament\Resources\ClientResource;
 use App\Models\Enrollment;
 use App\Models\IncomeRecord;
+use App\Models\Program;
 use App\Models\Service;
 use App\Models\ServiceRecord;
+use App\Models\User;
+use App\Services\Lookup;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -23,7 +26,7 @@ class ViewClient extends ViewRecord
 {
     protected static string $resource = ClientResource::class;
 
-    protected function resolveRecord(int | string $key): Model
+    protected function resolveRecord(int|string $key): Model
     {
         $record = parent::resolveRecord($key);
 
@@ -57,7 +60,7 @@ class ViewClient extends ViewRecord
                             ->with('program')
                             ->get()
                             ->mapWithKeys(fn (Enrollment $e): array => [
-                                $e->id => $e->program->name . ' (' . $e->enrolled_at->format('m/d/Y') . ')',
+                                $e->id => $e->program->name.' ('.$e->enrolled_at->format('m/d/Y').')',
                             ])
                             ->toArray())
                         ->required(),
@@ -70,7 +73,7 @@ class ViewClient extends ViewRecord
                         ->searchable(),
                     Select::make('provided_by')
                         ->label('Provider')
-                        ->options(fn (): array => \App\Models\User::where('is_active', true)
+                        ->options(fn (): array => User::where('is_active', true)
                             ->pluck('name', 'id')
                             ->toArray())
                         ->searchable(),
@@ -105,14 +108,14 @@ class ViewClient extends ViewRecord
                 ->form([
                     Select::make('program_id')
                         ->label('Program')
-                        ->options(fn (): array => \App\Models\Program::where('is_active', true)
+                        ->options(fn (): array => Program::where('is_active', true)
                             ->pluck('name', 'id')
                             ->toArray())
                         ->required()
                         ->searchable(),
                     Select::make('caseworker_id')
                         ->label('Caseworker')
-                        ->options(fn (): array => \App\Models\User::where('is_active', true)
+                        ->options(fn (): array => User::where('is_active', true)
                             ->pluck('name', 'id')
                             ->toArray())
                         ->searchable(),
@@ -145,7 +148,7 @@ class ViewClient extends ViewRecord
                 ->color('warning')
                 ->form([
                     Select::make('source')
-                        ->options(fn (): array => \App\Services\Lookup::options('income_source'))
+                        ->options(fn (): array => Lookup::options('income_source'))
                         ->required()
                         ->searchable(),
                     TextInput::make('amount')

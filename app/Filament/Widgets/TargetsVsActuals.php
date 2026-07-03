@@ -14,7 +14,7 @@ class TargetsVsActuals extends Widget
 
     protected static ?int $sort = 5;
 
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     public ?array $indicators = null;
 
@@ -28,7 +28,7 @@ class TargetsVsActuals extends Widget
 
     public function loadData(): void
     {
-        $service = new TrendAnalysisService();
+        $service = new TrendAnalysisService;
         $results = $service->targetsVsActuals($this->fiscalYear);
 
         // Only show indicators that have a target set

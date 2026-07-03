@@ -42,6 +42,31 @@
             </x-filament::section>
         @endif
 
+        {{-- Household Characteristics Completeness --}}
+        @if($this->householdCompleteness && $this->householdCompleteness['total_households'] > 0)
+            <x-filament::section>
+                <x-slot name="heading">Household Characteristics (CSBG Section C)</x-slot>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div class="rounded-lg bg-gray-50 px-4 py-3 ring-1 ring-gray-950/5 dark:bg-white/5 dark:ring-white/10">
+                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Households Served</p>
+                        <p class="mt-0.5 text-lg font-bold text-gray-900 dark:text-white">{{ number_format($this->householdCompleteness['total_households']) }}</p>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 px-4 py-3 ring-1 ring-gray-950/5 dark:bg-white/5 dark:ring-white/10">
+                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Missing Household Type</p>
+                        <p class="mt-0.5 text-lg font-bold {{ $this->householdCompleteness['missing_household_type'] > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400' }}">
+                            {{ $this->householdCompleteness['missing_household_type'] }}
+                        </p>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 px-4 py-3 ring-1 ring-gray-950/5 dark:bg-white/5 dark:ring-white/10">
+                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Missing Housing Type</p>
+                        <p class="mt-0.5 text-lg font-bold {{ $this->householdCompleteness['missing_housing_type'] > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400' }}">
+                            {{ $this->householdCompleteness['missing_housing_type'] }}
+                        </p>
+                    </div>
+                </div>
+            </x-filament::section>
+        @endif
+
         {{-- Least Complete Clients --}}
         @if(!empty($this->leastComplete))
             <x-filament::section collapsible>

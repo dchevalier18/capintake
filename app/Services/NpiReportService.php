@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\CsbgReportSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -11,11 +12,29 @@ class NpiReportService
 {
     protected ?int $programId = null;
 
+    protected ?string $reportVersion = null;
+
     public function forProgram(?int $programId): static
     {
         $this->programId = $programId;
 
         return $this;
+    }
+
+    /**
+     * Restrict the report to a CSBG Annual Report taxonomy version.
+     * Defaults to the agency's configured version.
+     */
+    public function forVersion(?string $version): static
+    {
+        $this->reportVersion = $version;
+
+        return $this;
+    }
+
+    protected function reportVersion(): string
+    {
+        return $this->reportVersion ??= CsbgReportSetting::current()->report_version ?? '2.1';
     }
 
     /**
@@ -28,7 +47,7 @@ class NpiReportService
      */
     protected function endOfDay(string $date): string
     {
-        return str_contains($date, ' ') ? $date : $date . ' 23:59:59';
+        return str_contains($date, ' ') ? $date : $date.' 23:59:59';
     }
 
     /**
@@ -117,6 +136,7 @@ class NpiReportService
 
         $query = DB::table('npi_goals as ng')
             ->join('npi_indicators as ni', 'ni.npi_goal_id', '=', 'ng.id')
+            ->where('ni.report_version', $this->reportVersion())
             ->leftJoin('npi_indicator_service as nis', 'nis.npi_indicator_id', '=', 'ni.id')
             ->leftJoin('services as s', function ($join) use ($programId): void {
                 $join->on('s.id', '=', 'nis.service_id')
@@ -304,7 +324,8 @@ class NpiReportService
             ->join('npi_indicator_service as nis', 'nis.service_id', '=', 's.id')
             ->join('npi_indicators as ni', function ($join) use ($goalId): void {
                 $join->on('ni.id', '=', 'nis.npi_indicator_id')
-                    ->where('ni.npi_goal_id', '=', $goalId);
+                    ->where('ni.npi_goal_id', '=', $goalId)
+                    ->where('ni.report_version', $this->reportVersion());
             })
             ->whereBetween('sr.service_date', [$startDate, $this->endOfDay($endDate)])
             ->whereNull('sr.deleted_at');
@@ -326,6 +347,10 @@ class NpiReportService
                 $join->on('s.id', '=', 'sr.service_id')->whereNull('s.deleted_at');
             })
             ->join('npi_indicator_service as nis', 'nis.service_id', '=', 's.id')
+            ->join('npi_indicators as ni', function ($join): void {
+                $join->on('ni.id', '=', 'nis.npi_indicator_id')
+                    ->where('ni.report_version', $this->reportVersion());
+            })
             ->whereBetween('sr.service_date', [$startDate, $this->endOfDay($endDate)])
             ->whereNull('sr.deleted_at');
 
@@ -363,18 +388,18 @@ class NpiReportService
             'Total Value ($)',
         ];
         foreach ($races as $r) {
-            $header[] = 'Race: ' . ($raceOptions[$r] ?? $r);
+            $header[] = 'Race: '.($raceOptions[$r] ?? $r);
         }
         foreach ($genders as $g) {
-            $header[] = 'Gender: ' . ($genderOptions[$g] ?? $g);
+            $header[] = 'Gender: '.($genderOptions[$g] ?? $g);
         }
         foreach ($ages as $a) {
-            $header[] = 'Age: ' . $a;
+            $header[] = 'Age: '.$a;
         }
         $rows[] = $header;
 
         foreach ($report as $goal) {
-            $goalRow = ['Goal ' . $goal['goal_number'], $goal['goal_name'], $goal['goal_total_clients'], '', '', '', '', '', ''];
+            $goalRow = ['Goal '.$goal['goal_number'], $goal['goal_name'], $goal['goal_total_clients'], '', '', '', '', '', ''];
             $goalRow = array_merge($goalRow, array_fill(0, count($races) + count($genders) + count($ages), ''));
             $rows[] = $goalRow;
 

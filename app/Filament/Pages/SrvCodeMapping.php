@@ -40,7 +40,7 @@ class SrvCodeMapping extends Page
 
     protected function loadMappings(): void
     {
-        $categories = CsbgSrvCategory::orderBy('sort_order')
+        $categories = CsbgSrvCategory::forVersion()->orderBy('sort_order')
             ->get()
             ->map(fn (CsbgSrvCategory $cat) => [
                 'id' => $cat->id,
@@ -62,7 +62,7 @@ class SrvCodeMapping extends Page
             ->orderBy('code')
             ->get()
             ->mapWithKeys(fn (Service $s) => [
-                $s->id => $s->program->code . ' — ' . $s->name . ' (' . $s->code . ')',
+                $s->id => $s->program->code.' — '.$s->name.' ('.$s->code.')',
             ])
             ->toArray();
     }
@@ -80,6 +80,45 @@ class SrvCodeMapping extends Page
             ->success()
             ->title('Mappings saved')
             ->body('Service-to-SRV code mappings have been updated.')
+            ->send();
+    }
+
+    /**
+     * Copy service mappings from version 2.1 categories to same-coded
+     * categories in the active version. Used after loading the 3.0 taxonomy
+     * so agencies don't re-map every service by hand.
+     */
+    public function copyMappingsFromV21(): void
+    {
+        $activeVersion = CsbgSrvCategory::activeReportVersion();
+
+        if ($activeVersion === '2.1') {
+            Notification::make()
+                ->warning()
+                ->title('Nothing to copy')
+                ->body('Version 2.1 is already the active report version.')
+                ->send();
+
+            return;
+        }
+
+        $copied = 0;
+        $sourceByCode = CsbgSrvCategory::forVersion('2.1')->with('services')->get()->keyBy('code');
+
+        CsbgSrvCategory::forVersion($activeVersion)->get()->each(function (CsbgSrvCategory $target) use ($sourceByCode, &$copied): void {
+            $source = $sourceByCode->get($target->code);
+            if ($source && $source->services->isNotEmpty()) {
+                $target->services()->syncWithoutDetaching($source->services->pluck('id')->all());
+                $copied++;
+            }
+        });
+
+        $this->loadMappings();
+
+        Notification::make()
+            ->success()
+            ->title('Mappings copied')
+            ->body("Copied 2.1 service mappings to {$copied} matching {$activeVersion} categories.")
             ->send();
     }
 }

@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Filament\Widgets;
 
-use App\Enums\EnrollmentStatus;
 use App\Models\Program;
-use App\Models\ServiceRecord;
 use Filament\Widgets\ChartWidget;
+use Illuminate\Support\Facades\DB;
 
 class ProgramBreakdown extends ChartWidget
 {
@@ -38,7 +37,7 @@ class ProgramBreakdown extends ChartWidget
         $programs = Program::active()
             ->withCount(['serviceRecords as clients_served' => function ($query) use ($startDate): void {
                 $query->where('service_date', '>=', $startDate)
-                    ->select(\Illuminate\Support\Facades\DB::raw('COUNT(DISTINCT client_id)'));
+                    ->select(DB::raw('COUNT(DISTINCT client_id)'));
             }])
             ->orderByDesc('clients_served')
             ->get();

@@ -23,7 +23,7 @@ it('returns expenditures for a fiscal year', function () {
         'csbg_funds' => 75000.00,
     ]);
 
-    $report = (new CsbgReportService())->module2SectionA(2025);
+    $report = (new CsbgReportService)->module2SectionA(2025);
 
     expect($report)->toHaveCount(2)
         ->and($report->firstWhere('domain', 'employment')['csbg_funds'])->toBe(50000.00)
@@ -45,13 +45,13 @@ it('excludes expenditures from other fiscal years', function () {
         'csbg_funds' => 30000.00,
     ]);
 
-    $report = (new CsbgReportService())->module2SectionA(2025);
+    $report = (new CsbgReportService)->module2SectionA(2025);
 
     expect($report)->toHaveCount(1);
 });
 
 it('returns empty collection when no expenditures exist', function () {
-    $report = (new CsbgReportService())->module2SectionA(2025);
+    $report = (new CsbgReportService)->module2SectionA(2025);
 
     expect($report)->toHaveCount(0);
 });

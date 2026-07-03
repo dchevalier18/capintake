@@ -10,6 +10,10 @@ use App\Models\Service;
 use App\Models\ServiceRecord;
 use App\Models\User;
 use App\Services\NpiReportService;
+use Database\Seeders\LookupSeeder;
+use Database\Seeders\NpiSeeder;
+use Database\Seeders\NpiServiceMappingSeeder;
+use Database\Seeders\ProgramSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -20,10 +24,10 @@ uses(RefreshDatabase::class);
  */
 function seedNpiData(): void
 {
-    test()->seed(\Database\Seeders\LookupSeeder::class);
-    test()->seed(\Database\Seeders\NpiSeeder::class);
-    test()->seed(\Database\Seeders\ProgramSeeder::class);
-    test()->seed(\Database\Seeders\NpiServiceMappingSeeder::class);
+    test()->seed(LookupSeeder::class);
+    test()->seed(NpiSeeder::class);
+    test()->seed(ProgramSeeder::class);
+    test()->seed(NpiServiceMappingSeeder::class);
 }
 
 /**
@@ -62,7 +66,7 @@ function createServiceRecordForCode(
 it('generate returns data for all 7 goals', function () {
     seedNpiData();
 
-    $service = new NpiReportService();
+    $service = new NpiReportService;
     $report = $service->generate('2025-01-01', '2026-12-31');
 
     expect($report)->toHaveCount(7);
@@ -76,7 +80,7 @@ it('unduplicated count is correct — same client with 2 service records counts 
     createServiceRecordForCode('CSBG-VITA', $client, '2025-06-01', 50.00);
     createServiceRecordForCode('CSBG-VITA', $client, '2025-06-15', 75.00);
 
-    $service = new NpiReportService();
+    $service = new NpiReportService;
     $report = $service->generate('2025-01-01', '2025-12-31');
 
     $goal3 = $report->firstWhere('goal_number', 3);
@@ -93,7 +97,7 @@ it('service records outside date range are excluded', function () {
     createServiceRecordForCode('CSBG-VITA', $client, '2025-06-01', 100.00);
     createServiceRecordForCode('CSBG-VITA', $client, '2024-01-01', 200.00);
 
-    $service = new NpiReportService();
+    $service = new NpiReportService;
     $report = $service->generate('2025-01-01', '2025-12-31');
 
     $goal3 = $report->firstWhere('goal_number', 3);
@@ -111,7 +115,7 @@ it('goal-level unduplicated count works — client under 2 indicators in same go
     createServiceRecordForCode('CSBG-VITA', $client, '2025-06-01');
     createServiceRecordForCode('CSBG-IR', $client, '2025-06-15');
 
-    $service = new NpiReportService();
+    $service = new NpiReportService;
     $report = $service->generate('2025-01-01', '2025-12-31');
 
     $goal3 = $report->firstWhere('goal_number', 3);
@@ -128,7 +132,7 @@ it('grandTotalUnduplicatedClients returns correct count', function () {
     createServiceRecordForCode('EMRG-FOOD', $clientA, '2025-06-15');
     createServiceRecordForCode('EMRG-RENT', $clientB, '2025-07-01');
 
-    $service = new NpiReportService();
+    $service = new NpiReportService;
     expect($service->grandTotalUnduplicatedClients('2025-01-01', '2025-12-31'))->toBe(2);
 });
 
@@ -147,7 +151,7 @@ it('program filter limits results to a single program', function () {
     $emrgProgram = Program::where('code', 'EMRG')->first();
 
     // CSBG-only: client should appear under Goal 3 (CSBG-VITA → 3.1)
-    $service = (new NpiReportService())->forProgram($csbgProgram->id);
+    $service = (new NpiReportService)->forProgram($csbgProgram->id);
     $report = $service->generate('2025-01-01', '2025-12-31');
 
     $goal3 = $report->firstWhere('goal_number', 3);
@@ -160,7 +164,7 @@ it('program filter limits results to a single program', function () {
     expect($service->grandTotalUnduplicatedClients('2025-01-01', '2025-12-31'))->toBe(1);
 
     // EMRG-only: client should appear under Goal 7 (EMRG-FOOD → 7.1, 7.2)
-    $service2 = (new NpiReportService())->forProgram($emrgProgram->id);
+    $service2 = (new NpiReportService)->forProgram($emrgProgram->id);
     $report2 = $service2->generate('2025-01-01', '2025-12-31');
 
     $goal3b = $report2->firstWhere('goal_number', 3);
@@ -182,11 +186,11 @@ it('program filter applies to grand total', function () {
     $csbgProgram = Program::where('code', 'CSBG')->first();
 
     // Unfiltered: 1 client
-    $all = new NpiReportService();
+    $all = new NpiReportService;
     expect($all->grandTotalUnduplicatedClients('2025-01-01', '2025-12-31'))->toBe(1);
 
     // CSBG only: still 1 (same client)
-    $filtered = (new NpiReportService())->forProgram($csbgProgram->id);
+    $filtered = (new NpiReportService)->forProgram($csbgProgram->id);
     expect($filtered->grandTotalUnduplicatedClients('2025-01-01', '2025-12-31'))->toBe(1);
 });
 
@@ -204,7 +208,7 @@ it('generate includes demographic breakdowns per indicator', function () {
     ]);
     createServiceRecordForCode('CSBG-VITA', $client, '2025-06-01');
 
-    $service = new NpiReportService();
+    $service = new NpiReportService;
     $report = $service->generate('2025-01-01', '2025-12-31');
 
     $goal3 = $report->firstWhere('goal_number', 3);
@@ -227,7 +231,7 @@ it('demographic breakdowns are unduplicated per indicator', function () {
     createServiceRecordForCode('CSBG-VITA', $client, '2025-06-01');
     createServiceRecordForCode('CSBG-VITA', $client, '2025-06-15');
 
-    $service = new NpiReportService();
+    $service = new NpiReportService;
     $report = $service->generate('2025-01-01', '2025-12-31');
 
     $goal3 = $report->firstWhere('goal_number', 3);
@@ -249,7 +253,7 @@ it('multiple clients show correct demographic counts', function () {
     createServiceRecordForCode('CSBG-VITA', $clientB, '2025-06-01');
     createServiceRecordForCode('CSBG-VITA', $clientC, '2025-06-01');
 
-    $service = new NpiReportService();
+    $service = new NpiReportService;
     $report = $service->generate('2025-01-01', '2025-12-31');
 
     $goal3 = $report->firstWhere('goal_number', 3);
@@ -272,7 +276,7 @@ it('multiple clients show correct demographic counts', function () {
 it('toFlatRows includes demographic columns in header', function () {
     seedNpiData();
 
-    $service = new NpiReportService();
+    $service = new NpiReportService;
     $rows = $service->toFlatRows('2025-01-01', '2025-12-31');
 
     $header = $rows[0];
@@ -291,7 +295,7 @@ it('toFlatRows includes demographic columns in header', function () {
 it('toFlatRows has correct row count', function () {
     seedNpiData();
 
-    $service = new NpiReportService();
+    $service = new NpiReportService;
     $rows = $service->toFlatRows('2025-01-01', '2025-12-31');
 
     // 1 header + 7 goal rows + 60 indicator rows + 1 grand total = 69

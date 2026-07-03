@@ -53,7 +53,7 @@ class Household extends Model
             $this->address_line_1,
             $this->address_line_2,
             $this->city,
-            $this->state . ' ' . $this->zip,
+            $this->state.' '.$this->zip,
         ]);
 
         return implode(', ', $parts);

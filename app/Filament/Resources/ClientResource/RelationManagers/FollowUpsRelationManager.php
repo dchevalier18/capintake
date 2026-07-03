@@ -6,12 +6,14 @@ namespace App\Filament\Resources\ClientResource\RelationManagers;
 
 use App\Enums\FollowUpStatus;
 use App\Models\FollowUp;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
-use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -87,11 +89,11 @@ class FollowUpsRelationManager extends RelationManager
                     )),
             ])
             ->headerActions([
-                \Filament\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->actions([
-                \Filament\Actions\EditAction::make(),
-                \Filament\Actions\DeleteAction::make(),
+                EditAction::make(),
+                DeleteAction::make(),
             ])
             ->defaultSort('scheduled_date', 'asc');
     }

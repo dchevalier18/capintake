@@ -35,6 +35,9 @@ class HouseholdMemberFactory extends Factory
             'is_student' => fake()->boolean(20),
             'education_level' => fake()->randomElement(['grades_0_8', 'hs_graduate', 'ged', 'some_post_secondary', 'college_2_4_yr']),
             'health_insurance' => fake()->randomElement(['medicaid', 'medicare', 'employer', 'direct_purchase', 'unknown']),
+            'health_insurance_status' => fake()->randomElement(['yes', 'no', 'unknown']),
+            'health_insurance_source' => fake()->randomElement(['medicaid', 'medicare', 'employer', 'direct_purchase']),
+            'military_status' => fake()->randomElement(['veteran', 'active', 'never_served']),
         ];
     }
 

@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Filament\Widgets;
 
 use App\Enums\EnrollmentStatus;
-use App\Enums\IntakeStatus;
-use App\Models\Client;
+use App\Filament\Pages\IntakeWizard;
+use App\Filament\Resources\ClientResource;
 use App\Models\Enrollment;
+use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
@@ -42,7 +42,7 @@ class MyCaseload extends TableWidget
                             ->orWhere('last_name', 'like', "%{$search}%")
                     ))
                     ->url(fn ($record): ?string => $record->client
-                        ? \App\Filament\Resources\ClientResource::getUrl('edit', ['record' => $record->client])
+                        ? ClientResource::getUrl('edit', ['record' => $record->client])
                         : null
                     ),
 
@@ -83,10 +83,10 @@ class MyCaseload extends TableWidget
             ->emptyStateDescription('Clients assigned to you will appear here. Start by creating a new intake.')
             ->emptyStateIcon('heroicon-o-clipboard-document-list')
             ->emptyStateActions([
-                \Filament\Actions\Action::make('new_intake')
+                Action::make('new_intake')
                     ->label('New Intake')
                     ->icon('heroicon-o-clipboard-document-list')
-                    ->url(\App\Filament\Pages\IntakeWizard::getUrl()),
+                    ->url(IntakeWizard::getUrl()),
             ])
             ->paginated([5, 10, 25]);
     }

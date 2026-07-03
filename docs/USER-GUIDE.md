@@ -341,3 +341,7 @@ Click on any column header to sort the list by that column. Click again to rever
 ### Exporting Data
 
 Where available, use the export button to download records as PDF or Excel files. This is useful for generating reports for supervisors, state offices, or auditors.
+
+## CSBG Characteristics (Why the Demographics Questions Matter)
+
+The demographic questions in the intake wizard — education, work status, health insurance, military status, household type, income sources, and non-cash benefits like SNAP or LIHEAP — feed the agency's federal CSBG Annual Report directly. Every question is optional and "unknown" is always an acceptable answer, but each completed field makes the agency's report to the state stronger. The Review step shows everything collected before you submit.

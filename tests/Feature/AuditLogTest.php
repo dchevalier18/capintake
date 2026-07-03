@@ -7,7 +7,6 @@ use App\Models\AgencySetting;
 use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\Enrollment;
-use App\Models\Household;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;

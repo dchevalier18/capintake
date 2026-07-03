@@ -350,3 +350,27 @@ php artisan up
 ```
 
 While in maintenance mode, all requests receive a 503 response. If you set a secret, you can bypass maintenance mode by visiting `https://your-url.com/your-secret-token` in your browser.
+
+## CSBG Annual Report
+
+CAPIntake computes the CSBG Annual Report (Modules 2, 3, and 4) from live data. The pieces an administrator maintains:
+
+- **CSBG Report Settings** (System Configuration): entity name, state, UEI, reporting period, current fiscal year, and the **Annual Report version** (2.1 through FY2025; 3.0 becomes selectable once the 3.0 taxonomy has been loaded — required for the FY2026 report).
+- **FNPI Targets** (CSBG Reports): per-fiscal-year targets for each indicator, with copy-from-previous-year.
+- **SRV Code Mapping** (CSBG Reports): map each agency service to its official SRV category. After switching to Annual Report 3.0, use "Copy mappings from 2.1" to carry mappings forward.
+- **Agency Capacity** (CSBG Reports): Module 2B capacity metrics per fiscal year.
+- **Community NPI Results** (CSBG Reports): Module 3B community-level indicator results.
+- **Expenditures / Funding Sources**: Modules 2A and 2C.
+
+### Module 4 Section C data collection
+
+The "All Characteristics Report" (Module 4 Section C) is only as complete as intake data. Every characteristic it needs — education level, work status, health insurance and source, military status, disconnected-youth status, household type, housing tenure, income sources, and non-cash benefits — is collected in the Intake Wizard and on Client/Household screens. All of these fields are optional ("Unknown/not reported" is a valid CSBG answer); use the **Data Quality** dashboard to find clients and households with missing characteristics before running the annual report.
+
+### Exports
+
+From the CSBG Annual Report page: PDF (internal review), CSV, and **Module 4 (Excel)** — a three-sheet workbook (FNPI / Services / All Characteristics) laid out like the NASCSP SmartForm your state CSBG office distributes.
+
+### Annual maintenance
+
+- **January:** HHS publishes the new Federal Poverty Guidelines mid-month. Add them under Federal Poverty Levels (the system falls back to the latest loaded year and warns until you do).
+- **Fiscal year rollover:** update the Current Fiscal Year in CSBG Report Settings and set new FNPI targets.

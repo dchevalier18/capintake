@@ -258,6 +258,22 @@ class LookupSeeder extends Seeder
                     ['key' => 'civic_engagement', 'label' => 'Civic Engagement and Community Involvement'],
                 ],
             ],
+            [
+                'key' => 'document_type',
+                'name' => 'Document Type',
+                'description' => 'Categories for files attached to client records.',
+                'allow_custom' => true,
+                'values' => [
+                    ['key' => 'photo_id', 'label' => 'Photo ID'],
+                    ['key' => 'income_verification', 'label' => 'Income Verification'],
+                    ['key' => 'utility_bill', 'label' => 'Utility Bill'],
+                    ['key' => 'lease', 'label' => 'Lease / Housing Document'],
+                    ['key' => 'ssn_card', 'label' => 'Social Security Card'],
+                    ['key' => 'benefit_letter', 'label' => 'Benefit Award Letter'],
+                    ['key' => 'signed_release', 'label' => 'Signed Release / Consent'],
+                    ['key' => 'other', 'label' => 'Other'],
+                ],
+            ],
         ];
     }
 }

@@ -89,7 +89,7 @@ return new class extends Migration
                     DB::table($table)->where('id', $row->id)->update([
                         'date_of_birth' => $decrypted,
                     ]);
-                } catch (\Throwable) {
+                } catch (Throwable) {
                     // Already plain text, skip
                 }
             }
@@ -144,14 +144,14 @@ return new class extends Migration
                 if ($row->amount !== null) {
                     try {
                         $updates['amount'] = Crypt::decryptString($row->amount);
-                    } catch (\Throwable) {
+                    } catch (Throwable) {
                         // Already plain text
                     }
                 }
                 if ($row->annual_amount !== null) {
                     try {
                         $updates['annual_amount'] = Crypt::decryptString($row->annual_amount);
-                    } catch (\Throwable) {
+                    } catch (Throwable) {
                         // Already plain text
                     }
                 }

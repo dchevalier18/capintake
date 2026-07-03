@@ -36,6 +36,9 @@
             <x-filament::button tag="a" href="{{ route('csbg.export.pdf', ['year' => $this->fiscalYear]) }}" icon="heroicon-o-document-arrow-down" color="danger">
                 Export PDF
             </x-filament::button>
+            <x-filament::button tag="a" href="{{ route('csbg.export.xlsx', ['year' => $this->fiscalYear]) }}" icon="heroicon-o-table-cells" color="info">
+                Export Module 4 (Excel)
+            </x-filament::button>
         @endif
 
         @if($this->generatedAt)
@@ -182,7 +185,7 @@
                     {{-- Section C: Individual Level --}}
                     <h3 class="mb-3 text-sm font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">C. Individual Level Characteristics</h3>
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        @foreach(['by_gender' => 'Sex', 'by_race' => 'Race', 'by_ethnicity' => 'Ethnicity', 'by_age' => 'Age', 'by_employment_status' => 'Work Status', 'by_health_insurance_status' => 'Health Insurance', 'by_health_insurance_source' => 'Health Insurance Source', 'by_military_status' => 'Military Status'] as $key => $label)
+                        @foreach(['by_gender' => 'Sex', 'by_race' => 'Race', 'by_ethnicity' => 'Ethnicity', 'by_age' => 'Age', 'by_employment_status' => 'Work Status (18+)', 'by_disabling_condition' => 'Disabling Condition', 'by_health_insurance_status' => 'Health Insurance', 'by_health_insurance_source' => 'Health Insurance Source', 'by_military_status' => 'Military Status'] as $key => $label)
                             <div class="overflow-hidden rounded-xl ring-1 ring-gray-950/5 dark:ring-white/10">
                                 <div class="bg-gray-50 px-4 py-3 dark:bg-white/5">
                                     <h4 class="font-semibold text-gray-900 dark:text-white">{{ $label }}</h4>
@@ -330,6 +333,45 @@
                                         <tr>
                                             <td class="px-4 py-2.5 text-gray-700 dark:text-gray-300">{{ \App\Services\Lookup::label('non_cash_benefit', $val) ?? strtoupper(str_replace('_', ' ', $val)) }}</td>
                                             <td class="px-4 py-2.5 text-right tabular-nums font-semibold text-gray-900 dark:text-white">{{ number_format($count) }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr><td class="px-4 py-3 text-gray-400 dark:text-gray-500" colspan="2">No data</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {{-- Sections E/F: per-program unduplicated counts --}}
+                    <h3 class="mb-3 mt-8 text-sm font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">E / F. Individuals and Households Served per Program</h3>
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div class="overflow-hidden rounded-xl ring-1 ring-gray-950/5 dark:ring-white/10">
+                            <div class="bg-gray-50 px-4 py-3 dark:bg-white/5">
+                                <h4 class="font-semibold text-gray-900 dark:text-white">E. Unduplicated Individuals per Program</h4>
+                            </div>
+                            <table class="w-full text-sm">
+                                <tbody class="divide-y divide-gray-950/5 dark:divide-white/5">
+                                    @forelse($chars['section_e'] ?? [] as $row)
+                                        <tr>
+                                            <td class="px-4 py-2.5 text-gray-700 dark:text-gray-300">{{ $row['program'] }}</td>
+                                            <td class="px-4 py-2.5 text-right tabular-nums font-semibold text-gray-900 dark:text-white">{{ number_format($row['count']) }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr><td class="px-4 py-3 text-gray-400 dark:text-gray-500" colspan="2">No data</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="overflow-hidden rounded-xl ring-1 ring-gray-950/5 dark:ring-white/10">
+                            <div class="bg-gray-50 px-4 py-3 dark:bg-white/5">
+                                <h4 class="font-semibold text-gray-900 dark:text-white">F. Unduplicated Households per Program</h4>
+                            </div>
+                            <table class="w-full text-sm">
+                                <tbody class="divide-y divide-gray-950/5 dark:divide-white/5">
+                                    @forelse($chars['section_f'] ?? [] as $row)
+                                        <tr>
+                                            <td class="px-4 py-2.5 text-gray-700 dark:text-gray-300">{{ $row['program'] }}</td>
+                                            <td class="px-4 py-2.5 text-right tabular-nums font-semibold text-gray-900 dark:text-white">{{ number_format($row['count']) }}</td>
                                         </tr>
                                     @empty
                                         <tr><td class="px-4 py-3 text-gray-400 dark:text-gray-500" colspan="2">No data</td></tr>

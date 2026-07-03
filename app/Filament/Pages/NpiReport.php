@@ -133,7 +133,7 @@ class NpiReport extends Page
 
     protected function makeService(): NpiReportService
     {
-        $service = new NpiReportService();
+        $service = new NpiReportService;
 
         if (! empty($this->programId)) {
             $service->forProgram((int) $this->programId);
@@ -183,10 +183,10 @@ class NpiReport extends Page
             'programLabel' => $programLabel,
         ])->setPaper('letter', 'landscape');
 
-        $filename = 'npi-report-' . $this->startDate . '-to-' . $this->endDate . '.pdf';
+        $filename = 'npi-report-'.$this->startDate.'-to-'.$this->endDate.'.pdf';
 
         return response()->streamDownload(
-            fn () => print($pdf->output()),
+            fn () => print ($pdf->output()),
             $filename,
             ['Content-Type' => 'application/pdf'],
         );
@@ -194,7 +194,7 @@ class NpiReport extends Page
 
     public function exportCsv(): StreamedResponse
     {
-        $filename = 'npi-report-' . $this->startDate . '-to-' . $this->endDate . '.csv';
+        $filename = 'npi-report-'.$this->startDate.'-to-'.$this->endDate.'.csv';
 
         $programIdInt = ! empty($this->programId) ? (int) $this->programId : null;
 

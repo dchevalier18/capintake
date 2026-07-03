@@ -58,7 +58,7 @@ return new class extends Migration
 
             // Find duplicates (codes like CSBG2, CSBG3, EMRG2, etc.)
             $duplicates = DB::table('programs')
-                ->where('code', 'like', $code . '%')
+                ->where('code', 'like', $code.'%')
                 ->where('code', '!=', $code)
                 ->get();
 

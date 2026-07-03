@@ -28,6 +28,8 @@ class DataQualityDashboard extends Page
 
     public ?array $duplicates = null;
 
+    public ?array $householdCompleteness = null;
+
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -42,7 +44,7 @@ class DataQualityDashboard extends Page
 
     public function loadData(): void
     {
-        $service = new DataQualityService();
+        $service = new DataQualityService;
 
         $this->overview = $service->agencyCompletenessOverview();
         $this->leastComplete = $service->leastCompleteClients(15)->map(fn ($item) => [
@@ -52,5 +54,6 @@ class DataQualityDashboard extends Page
             'missing' => $item['missing'],
         ])->toArray();
         $this->duplicates = $service->duplicateDetection()->toArray();
+        $this->householdCompleteness = $service->householdCompleteness();
     }
 }

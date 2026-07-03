@@ -79,8 +79,10 @@ class CreateFederalPovertyLevel extends Page
                                 $size8 = (int) ($get('size_8') ?? 0);
                                 if ($size7 > 0 && $size8 > $size7) {
                                     $increment = $size8 - $size7;
-                                    return new HtmlString('<span class="text-lg font-bold text-success-600">$' . number_format($increment) . '</span> <span class="text-sm text-gray-500">(used for households larger than 8)</span>');
+
+                                    return new HtmlString('<span class="text-lg font-bold text-success-600">$'.number_format($increment).'</span> <span class="text-sm text-gray-500">(used for households larger than 8)</span>');
                                 }
+
                                 return new HtmlString('<span class="text-gray-400">Enter sizes 7 and 8 to calculate</span>');
                             }),
                     ])
@@ -100,6 +102,7 @@ class CreateFederalPovertyLevel extends Page
                 ->title('No previous data')
                 ->body("No FPL data found for {$region} region to copy from.")
                 ->send();
+
             return;
         }
 
@@ -130,12 +133,13 @@ class CreateFederalPovertyLevel extends Page
 
         // Validate that sizes increase
         for ($i = 2; $i <= 8; $i++) {
-            if ((int) $data["size_{$i}"] <= (int) $data['size_' . ($i - 1)]) {
+            if ((int) $data["size_{$i}"] <= (int) $data['size_'.($i - 1)]) {
                 Notification::make()
                     ->danger()
                     ->title('Invalid amounts')
-                    ->body("Household Size {$i} must be greater than Size " . ($i - 1) . ".")
+                    ->body("Household Size {$i} must be greater than Size ".($i - 1).'.')
                     ->send();
+
                 return;
             }
         }

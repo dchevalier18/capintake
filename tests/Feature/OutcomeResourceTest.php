@@ -7,14 +7,16 @@ use App\Filament\Resources\OutcomeResource;
 use App\Models\Client;
 use App\Models\Enrollment;
 use App\Models\FnpiTarget;
-use App\Models\NpiGoal;
 use App\Models\NpiIndicator;
 use App\Models\Outcome;
-use App\Models\Program;
 use App\Models\Service;
 use App\Models\ServiceRecord;
 use App\Models\User;
 use App\Services\NpiReportService;
+use Database\Seeders\LookupSeeder;
+use Database\Seeders\NpiSeeder;
+use Database\Seeders\NpiServiceMappingSeeder;
+use Database\Seeders\ProgramSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -22,10 +24,10 @@ uses(RefreshDatabase::class);
 
 function seedOutcomeTestData(): void
 {
-    test()->seed(\Database\Seeders\LookupSeeder::class);
-    test()->seed(\Database\Seeders\NpiSeeder::class);
-    test()->seed(\Database\Seeders\ProgramSeeder::class);
-    test()->seed(\Database\Seeders\NpiServiceMappingSeeder::class);
+    test()->seed(LookupSeeder::class);
+    test()->seed(NpiSeeder::class);
+    test()->seed(ProgramSeeder::class);
+    test()->seed(NpiServiceMappingSeeder::class);
 }
 
 // =============================================================================
@@ -156,7 +158,7 @@ it('NPI report generate returns 5-column format with outcomes', function () {
         'target_count' => 10,
     ]);
 
-    $npiService = new NpiReportService();
+    $npiService = new NpiReportService;
     $report = $npiService->generate('2025-01-01', '2025-12-31');
 
     $goal3 = $report->firstWhere('goal_number', 3);
@@ -194,7 +196,7 @@ it('only achieved outcomes are counted in actual_results', function () {
         'fiscal_year' => 2025,
     ]);
 
-    $npiService = new NpiReportService();
+    $npiService = new NpiReportService;
     $counts = $npiService->outcomeCountsByIndicator('2025-01-01', '2025-12-31', [$indicator->id]);
 
     expect($counts[$indicator->id])->toBe(1);
@@ -222,7 +224,7 @@ it('outcome fiscal_year is auto-computed on save', function () {
 it('NPI report uses 10 CSBG age ranges', function () {
     seedOutcomeTestData();
 
-    $npiService = new NpiReportService();
+    $npiService = new NpiReportService;
     $rows = $npiService->toFlatRows('2025-01-01', '2025-12-31');
 
     $header = $rows[0];

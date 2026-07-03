@@ -14,7 +14,9 @@ class NpiGoalFactory extends Factory
     public function definition(): array
     {
         return [
-            'goal_number' => fake()->unique()->numberBetween(1, 100),
+            // Start above the 7 seeded federal goals so factory-created goals
+            // never collide with NpiSeeder rows on the unique goal_number.
+            'goal_number' => fake()->unique()->numberBetween(100, 10000),
             'name' => fake()->sentence(3),
             'description' => fake()->paragraph(),
         ];

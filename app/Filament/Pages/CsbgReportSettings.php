@@ -6,13 +6,13 @@ namespace App\Filament\Pages;
 
 use App\Enums\UserRole;
 use App\Models\CsbgReportSetting;
+use App\Models\NpiIndicator;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Support\HtmlString;
 
 class CsbgReportSettings extends Page
 {
@@ -47,6 +47,7 @@ class CsbgReportSettings extends Page
             'uei' => $settings->uei,
             'reporting_period' => $settings->reporting_period,
             'current_fiscal_year' => $settings->current_fiscal_year,
+            'report_version' => $settings->report_version ?? '2.1',
             'total_csbg_allocation' => $settings->total_csbg_allocation,
         ]);
     }
@@ -96,8 +97,19 @@ class CsbgReportSettings extends Page
                             ->minValue(2020)
                             ->maxValue(2040)
                             ->helperText('The year associated with the current reporting period.'),
+
+                        Select::make('report_version')
+                            ->label('CSBG Annual Report Version')
+                            ->options([
+                                '2.1' => 'Version 2.1 (through FY2025)',
+                                '3.0' => 'Version 3.0 (OMB 0970-0492 — required for FY2026)',
+                            ])
+                            ->required()
+                            ->disableOptionWhen(fn (string $value): bool => $value === '3.0'
+                                && ! NpiIndicator::forVersion('3.0')->exists())
+                            ->helperText('Version 3.0 becomes selectable once its FNPI/SRV taxonomy has been loaded. Switching versions changes which indicators and service categories appear in pickers and reports; historical data is untouched.'),
                     ])
-                    ->columns(2),
+                    ->columns(3),
 
                 Section::make('Financial')
                     ->schema([
