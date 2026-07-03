@@ -32,6 +32,9 @@ class HouseholdMember extends Model
         'is_student',
         'education_level',
         'health_insurance',
+        'health_insurance_status',
+        'health_insurance_source',
+        'military_status',
     ];
 
     protected function casts(): array

@@ -108,6 +108,31 @@ class DataQualityService
     }
 
     /**
+     * Household-level completeness for CSBG Module 4 Section C household
+     * characteristics (household type, housing tenure).
+     *
+     * @return array{total_households: int, missing_household_type: int, missing_housing_type: int}
+     */
+    public function householdCompleteness(): array
+    {
+        $servedHouseholdIds = Client::complete()->pluck('household_id')->unique()->filter();
+
+        $base = DB::table('households')
+            ->whereIn('id', $servedHouseholdIds)
+            ->whereNull('deleted_at');
+
+        return [
+            'total_households' => (clone $base)->count(),
+            'missing_household_type' => (clone $base)
+                ->where(fn ($q) => $q->whereNull('household_type')->orWhere('household_type', ''))
+                ->count(),
+            'missing_housing_type' => (clone $base)
+                ->where(fn ($q) => $q->whereNull('housing_type')->orWhere('housing_type', ''))
+                ->count(),
+        ];
+    }
+
+    /**
      * Find potential duplicate clients.
      *
      * Returns groups of clients that share SSN last four + birth year,

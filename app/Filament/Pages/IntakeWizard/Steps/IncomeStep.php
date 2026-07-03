@@ -8,6 +8,7 @@ use App\Enums\IncomeFrequency;
 use App\Filament\Pages\IntakeWizard;
 use App\Models\FederalPovertyLevel;
 use App\Services\Lookup;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -74,6 +75,16 @@ class IncomeStep
                             ->defaultItems(0)
                             ->live(),
                     ]),
+
+                Section::make('Non-Cash Benefits')
+                    ->description('Benefits the household receives (SNAP, WIC, LIHEAP, etc.) — used for CSBG reporting, not income eligibility')
+                    ->schema([
+                        CheckboxList::make('non_cash_benefits')
+                            ->label('')
+                            ->options(fn () => Lookup::options('non_cash_benefit'))
+                            ->columns(3),
+                    ])
+                    ->collapsible(),
 
                 Section::make('Eligibility Summary')
                     ->schema([

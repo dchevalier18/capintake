@@ -79,8 +79,17 @@ class IntakeDraftPersister
                 'gender' => $data['gender'] ?? null,
                 'race' => $data['race'] ?? null,
                 'ethnicity' => $data['ethnicity'] ?? null,
-                'is_veteran' => $data['is_veteran'] ?? false,
+                'education_level' => $data['education_level'] ?? null,
+                'employment_status' => $data['employment_status'] ?? null,
+                'military_status' => $data['military_status'] ?? null,
+                'health_insurance_status' => $data['health_insurance_status'] ?? null,
+                'health_insurance_source' => ($data['health_insurance_status'] ?? null) === 'yes'
+                    ? ($data['health_insurance_source'] ?? null)
+                    : null,
+                // A "veteran" military status implies the veteran flag
+                'is_veteran' => ($data['is_veteran'] ?? false) || ($data['military_status'] ?? null) === 'veteran',
                 'is_disabled' => $data['is_disabled'] ?? false,
+                'is_disconnected_youth' => $data['is_disconnected_youth'] ?? false,
                 'is_head_of_household' => $data['is_head_of_household'] ?? true,
                 'preferred_language' => $data['preferred_language'] ?? 'en',
                 'relationship_to_head' => $data['relationship_to_head'] ?? 'self',
@@ -135,9 +144,10 @@ class IntakeDraftPersister
 
             $household = $client->fresh()->household;
 
-            // Update housing type and head-of-household
+            // Update housing type, household type, and head-of-household
             $household->update([
                 'housing_type' => $data['housing_type'] ?? $household->housing_type,
+                'household_type' => $data['household_type'] ?? $household->household_type,
             ]);
 
             $client->update([
@@ -162,6 +172,10 @@ class IntakeDraftPersister
                     'relationship_to_client' => $member['relationship_to_client'],
                     'gender' => $member['gender'] ?? null,
                     'employment_status' => $member['employment_status'] ?? null,
+                    'race' => $member['race'] ?? null,
+                    'ethnicity' => $member['ethnicity'] ?? null,
+                    'education_level' => $member['education_level'] ?? null,
+                    'is_disabled' => $member['is_disabled'] ?? false,
                 ]);
             }
 
@@ -196,6 +210,18 @@ class IntakeDraftPersister
                     'frequency' => $income['frequency'] ?? null,
                     'effective_date' => now(),
                     'is_verified' => false,
+                ]);
+            }
+
+            // Sync non-cash benefits (household-level CSBG characteristic,
+            // stored on the client record)
+            $client->nonCashBenefits()->delete();
+
+            foreach ($data['non_cash_benefits'] ?? [] as $benefitKey) {
+                $client->nonCashBenefits()->create([
+                    'benefit_type' => $benefitKey,
+                    'effective_date' => now(),
+                    'is_active' => true,
                 ]);
             }
 

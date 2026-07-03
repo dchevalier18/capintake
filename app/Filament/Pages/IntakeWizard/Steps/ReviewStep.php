@@ -48,8 +48,15 @@ class ReviewStep
                                     'Gender' => e(Lookup::label('gender', $d['gender'] ?? null) ?? 'N/A'),
                                     'Race' => e(Lookup::label('race', $d['race'] ?? null) ?? 'N/A'),
                                     'Ethnicity' => e(Lookup::label('ethnicity', $d['ethnicity'] ?? null) ?? 'N/A'),
+                                    'Education' => e(Lookup::label('education_level', $d['education_level'] ?? null) ?? 'Not reported'),
+                                    'Work Status' => e(Lookup::label('employment_status', $d['employment_status'] ?? null) ?? 'Not reported'),
+                                    'Military Status' => e(Lookup::label('military_status', $d['military_status'] ?? null) ?? 'Not reported'),
+                                    'Health Insurance' => e(Lookup::label('health_insurance_status', $d['health_insurance_status'] ?? null) ?? 'Not reported')
+                                        .(($d['health_insurance_status'] ?? null) === 'yes' && ! empty($d['health_insurance_source'])
+                                            ? ' — '.e(Lookup::label('health_insurance_source', $d['health_insurance_source']) ?? '')
+                                            : ''),
                                     'Veteran' => ($d['is_veteran'] ?? false) ? 'Yes' : 'No',
-                                    'Disabled' => ($d['is_disabled'] ?? false) ? 'Yes' : 'No',
+                                    'Disabling Condition' => ($d['is_disabled'] ?? false) ? 'Yes' : 'No',
                                 ];
 
                                 return new HtmlString(self::buildReviewTable($rows));
@@ -145,6 +152,12 @@ class ReviewStep
                                     $html .= '</tbody></table>';
                                 } else {
                                     $html .= '<p class="text-sm text-gray-500">No income reported</p>';
+                                }
+
+                                $benefits = collect($d['non_cash_benefits'] ?? [])
+                                    ->map(fn (string $key): string => Lookup::label('non_cash_benefit', $key) ?? ucfirst(str_replace('_', ' ', $key)));
+                                if ($benefits->isNotEmpty()) {
+                                    $html .= '<div class="mt-2 text-sm">Non-Cash Benefits: '.e($benefits->join(', ')).'</div>';
                                 }
 
                                 $fplLabel = $fplPercent !== null ? "{$fplPercent}% FPL" : 'FPL data unavailable';

@@ -50,7 +50,7 @@ class IntakeWizard extends Page
         $clientId = request()->query('client');
 
         if ($clientId) {
-            $client = Client::with(['household', 'household.members', 'incomeRecords', 'enrollments'])
+            $client = Client::with(['household', 'household.members', 'incomeRecords', 'enrollments', 'nonCashBenefits'])
                 ->draft()
                 ->find((int) $clientId);
 
@@ -71,6 +71,7 @@ class IntakeWizard extends Page
             'household_mode' => 'new',
             'household_members' => [],
             'income_sources' => [],
+            'non_cash_benefits' => [],
             'program_enrollments' => [],
             'acknowledge_duplicates' => false,
         ]);
@@ -87,6 +88,10 @@ class IntakeWizard extends Page
             'relationship_to_client' => $m->relationship_to_client,
             'gender' => $m->gender,
             'employment_status' => $m->employment_status,
+            'race' => $m->race,
+            'ethnicity' => $m->ethnicity,
+            'education_level' => $m->education_level,
+            'is_disabled' => $m->is_disabled ?? false,
         ])->toArray();
 
         $incomes = $client->incomeRecords->map(fn (IncomeRecord $i) => [
@@ -113,8 +118,14 @@ class IntakeWizard extends Page
             'gender' => $client->gender,
             'race' => $client->race,
             'ethnicity' => $client->ethnicity,
+            'education_level' => $client->education_level,
+            'employment_status' => $client->employment_status,
+            'military_status' => $client->military_status,
+            'health_insurance_status' => $client->health_insurance_status,
+            'health_insurance_source' => $client->health_insurance_source,
             'is_veteran' => $client->is_veteran ?? false,
             'is_disabled' => $client->is_disabled ?? false,
+            'is_disconnected_youth' => $client->is_disconnected_youth ?? false,
             'preferred_language' => $client->preferred_language,
             'address_line_1' => $household->address_line_1,
             'address_line_2' => $household->address_line_2,
@@ -125,10 +136,12 @@ class IntakeWizard extends Page
             'household_mode' => 'new',
             'existing_household_id' => null,
             'housing_type' => $household->housing_type,
+            'household_type' => $household->household_type,
             'is_head_of_household' => $client->is_head_of_household ?? true,
             'relationship_to_head' => $client->relationship_to_head ?? 'self',
             'household_members' => $members,
             'income_sources' => $incomes,
+            'non_cash_benefits' => $client->nonCashBenefits->pluck('benefit_type')->toArray(),
             'program_enrollments' => $enrollments,
             'acknowledge_duplicates' => true,
         ]);

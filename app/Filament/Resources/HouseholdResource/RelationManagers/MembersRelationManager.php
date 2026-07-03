@@ -6,13 +6,18 @@ namespace App\Filament\Resources\HouseholdResource\RelationManagers;
 
 use App\Models\HouseholdMember;
 use App\Services\Lookup;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Filament\Tables;
 use Filament\Tables\Columns\BooleanColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -68,9 +73,19 @@ class MembersRelationManager extends RelationManager
                 Select::make('education_level')
                     ->options(fn () => Lookup::options('education_level')),
 
-                Select::make('health_insurance')
+                Select::make('health_insurance_status')
                     ->label('Health Insurance')
-                    ->options(fn () => Lookup::options('health_insurance_source')),
+                    ->options(fn () => Lookup::options('health_insurance_status'))
+                    ->live(),
+
+                Select::make('health_insurance_source')
+                    ->label('Insurance Source')
+                    ->options(fn () => Lookup::options('health_insurance_source'))
+                    ->visible(fn (Get $get): bool => $get('health_insurance_status') === 'yes'),
+
+                Select::make('military_status')
+                    ->label('Military Status')
+                    ->options(fn () => Lookup::options('military_status')),
             ]);
     }
 
@@ -102,15 +117,15 @@ class MembersRelationManager extends RelationManager
                 //
             ])
             ->headerActions([
-                \Filament\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->actions([
-                \Filament\Actions\EditAction::make(),
-                \Filament\Actions\DeleteAction::make(),
+                EditAction::make(),
+                DeleteAction::make(),
             ])
             ->bulkActions([
-                \Filament\Actions\BulkActionGroup::make([
-                    \Filament\Actions\DeleteBulkAction::make(),
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

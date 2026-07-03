@@ -73,6 +73,10 @@ class HouseholdStep
                             ->options(fn () => Lookup::options('housing_type'))
                             ->default('rent'),
 
+                        Select::make('household_type')
+                            ->label('Household Type')
+                            ->options(fn () => Lookup::options('household_type')),
+
                         Toggle::make('is_head_of_household')
                             ->label('This client is the head of household')
                             ->default(true)
@@ -113,8 +117,25 @@ class HouseholdStep
                                 Select::make('employment_status')
                                     ->label('Employment')
                                     ->options(fn () => Lookup::options('employment_status')),
+
+                                Select::make('race')
+                                    ->options(fn () => Lookup::options('race')),
+
+                                Select::make('ethnicity')
+                                    ->options(fn () => Lookup::options('ethnicity')),
+
+                                Select::make('education_level')
+                                    ->label('Education')
+                                    ->options(fn () => Lookup::options('education_level')),
+
+                                Toggle::make('is_disabled')
+                                    ->label('Disabling Condition')
+                                    ->default(false)
+                                    ->inline(false),
                             ])
                             ->columns(3)
+                            ->collapsible()
+                            ->itemLabel(fn (array $state): ?string => trim(($state['first_name'] ?? '').' '.($state['last_name'] ?? '')) ?: null)
                             ->addActionLabel('Add household member')
                             ->reorderable(false)
                             ->defaultItems(0)

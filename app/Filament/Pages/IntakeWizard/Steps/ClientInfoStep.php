@@ -13,7 +13,9 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Wizard\Step;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\HtmlString;
 
 class ClientInfoStep
@@ -109,6 +111,7 @@ class ClientInfoStep
                     ->columns(3),
 
                 Section::make('Demographics')
+                    ->description('All fields optional — "Unknown/not reported" is a valid answer for CSBG reporting, but complete data improves the agency\'s Annual Report.')
                     ->schema([
                         Select::make('gender')
                             ->options(fn () => Lookup::options('gender')),
@@ -120,13 +123,51 @@ class ClientInfoStep
                         Select::make('ethnicity')
                             ->options(fn () => Lookup::options('ethnicity')),
 
+                        Select::make('education_level')
+                            ->label('Education Level')
+                            ->options(fn () => Lookup::options('education_level')),
+
+                        Select::make('employment_status')
+                            ->label('Work Status')
+                            ->helperText('Collected for individuals 18+')
+                            ->options(fn () => Lookup::options('employment_status')),
+
+                        Select::make('military_status')
+                            ->label('Military Status')
+                            ->options(fn () => Lookup::options('military_status'))
+                            ->live(),
+
+                        Select::make('health_insurance_status')
+                            ->label('Health Insurance')
+                            ->options(fn () => Lookup::options('health_insurance_status'))
+                            ->live(),
+
+                        Select::make('health_insurance_source')
+                            ->label('Insurance Source')
+                            ->options(fn () => Lookup::options('health_insurance_source'))
+                            ->visible(fn (Get $get): bool => $get('health_insurance_status') === 'yes'),
+
                         Toggle::make('is_veteran')
                             ->label('Veteran')
                             ->default(false),
 
                         Toggle::make('is_disabled')
-                            ->label('Disabled')
+                            ->label('Disabling Condition')
                             ->default(false),
+
+                        Toggle::make('is_disconnected_youth')
+                            ->label('Disconnected Youth — not working or in school (ages 14-24)')
+                            ->default(false)
+                            ->visible(function (Get $get): bool {
+                                $dob = $get('date_of_birth');
+                                if (! $dob) {
+                                    return false;
+                                }
+
+                                $age = Carbon::parse($dob)->age;
+
+                                return $age >= 14 && $age <= 24;
+                            }),
                     ])
                     ->columns(3),
 
