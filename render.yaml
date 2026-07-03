@@ -1,13 +1,17 @@
 # Render Blueprint — https://render.com/docs/blueprint-spec
-# Deploy: https://render.com/deploy?repo=https://github.com/capintake/capintake
+# Deploy: https://render.com/deploy?repo=https://github.com/dchevalier18/capintake
 
 services:
   - type: web
     name: capintake
-    runtime: image
-    plan: starter
+    runtime: docker
+    # Free tier for evaluation: the service spins down after ~15 min of
+    # inactivity (first request after that takes ~1 min). Upgrade to
+    # 'starter' for an always-on instance.
+    plan: free
     dockerfilePath: ./Dockerfile
     dockerContext: .
+    healthCheckPath: /up
     envVars:
       - key: APP_NAME
         value: CAPIntake
@@ -17,11 +21,8 @@ services:
         value: "false"
       - key: APP_KEY
         generateValue: true
-      - key: APP_URL
-        fromService:
-          type: web
-          name: capintake
-          property: host
+      # APP_URL is derived from Render's RENDER_EXTERNAL_URL in the
+      # container entrypoint (includes the https:// scheme).
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_HOST
@@ -53,12 +54,15 @@ services:
       - key: MAIL_MAILER
         value: log
       - key: LOG_CHANNEL
-        value: stack
+        value: stderr
       - key: LOG_LEVEL
         value: warning
 
 databases:
   - name: capintake-db
-    plan: starter
+    # Free tier for evaluation: Render free Postgres EXPIRES AFTER 30 DAYS
+    # (with email warnings first). Upgrade the database to a paid plan in
+    # the Render dashboard before then to keep your data.
+    plan: free
     databaseName: capintake
     user: capintake
