@@ -36,6 +36,9 @@
             <x-filament::button tag="a" href="{{ route('csbg.export.pdf', ['year' => $this->fiscalYear]) }}" icon="heroicon-o-document-arrow-down" color="danger">
                 Export PDF
             </x-filament::button>
+            <x-filament::button tag="a" href="{{ route('csbg.export.xlsx', ['year' => $this->fiscalYear]) }}" icon="heroicon-o-table-cells" color="info">
+                Export Module 4 (Excel)
+            </x-filament::button>
         @endif
 
         @if($this->generatedAt)
