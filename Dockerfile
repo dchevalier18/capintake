@@ -1,8 +1,9 @@
 FROM php:8.3-fpm AS base
 
 # Install system dependencies.
-# libpq-dev is required to compile pdo_pgsql; libjpeg/libfreetype give gd
-# JPEG + TrueType support (agency logos rendered into PDFs by dompdf).
+# libpq-dev is required to compile pdo_pgsql; libicu-dev to compile intl
+# (required by filament/support); libjpeg/libfreetype give gd JPEG +
+# TrueType support (agency logos rendered into PDFs by dompdf).
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -13,10 +14,11 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     libzip-dev \
     libpq-dev \
+    libicu-dev \
     zip \
     unzip \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip \
+    && docker-php-ext-install pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip intl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
