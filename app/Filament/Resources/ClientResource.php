@@ -668,6 +668,7 @@ class ClientResource extends Resource
             RelationManagers\SelfSufficiencyAssessmentsRelationManager::class,
             RelationManagers\ReferralsRelationManager::class,
             RelationManagers\FollowUpsRelationManager::class,
+            RelationManagers\DocumentsRelationManager::class,
         ];
     }
 

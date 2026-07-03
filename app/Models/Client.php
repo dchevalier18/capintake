@@ -99,6 +99,11 @@ class Client extends Model
         return $this->hasMany(ClientNonCashBenefit::class);
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(ClientDocument::class);
+    }
+
     public function activeEnrollments(): HasMany
     {
         return $this->enrollments()->where('status', 'active');
