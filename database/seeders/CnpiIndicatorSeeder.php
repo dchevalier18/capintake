@@ -91,8 +91,15 @@ class CnpiIndicatorSeeder extends Seeder
 
         foreach ($indicators as $data) {
             CnpiIndicator::updateOrCreate(
-                ['indicator_code' => $data['indicator_code']],
-                $data,
+                ['indicator_code' => $data['indicator_code'], 'report_version' => '2.1'],
+                [...$data, 'report_version' => '2.1'],
+            );
+        }
+
+        foreach (require database_path('seeders/data/cnpi_v3_0.php') as $data) {
+            CnpiIndicator::updateOrCreate(
+                ['indicator_code' => $data['indicator_code'], 'report_version' => '3.0'],
+                [...$data, 'report_version' => '3.0'],
             );
         }
     }

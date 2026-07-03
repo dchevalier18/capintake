@@ -1,8 +1,14 @@
 <x-filament-panels::page>
-    <div class="flex items-center">
+    <div class="flex items-center gap-3">
         <x-filament::button wire:click="saveMappings" icon="heroicon-o-check">
             Save All Mappings
         </x-filament::button>
+
+        @if(\App\Models\CsbgSrvCategory::activeReportVersion() !== '2.1')
+            <x-filament::button wire:click="copyMappingsFromV21" color="gray" icon="heroicon-o-document-duplicate">
+                Copy mappings from 2.1
+            </x-filament::button>
+        @endif
     </div>
 
     @php

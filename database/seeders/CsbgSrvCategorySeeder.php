@@ -11,12 +11,18 @@ class CsbgSrvCategorySeeder extends Seeder
 {
     public function run(): void
     {
+        $this->seedVersion('2.1', $this->getCategories());
+        $this->seedVersion('3.0', require database_path('seeders/data/srv_v3_0.php'));
+    }
+
+    protected function seedVersion(string $version, array $categories): void
+    {
         $sortOrder = 0;
 
-        foreach ($this->getCategories() as $category) {
+        foreach ($categories as $category) {
             CsbgSrvCategory::updateOrCreate(
-                ['code' => $category['code']],
-                array_merge($category, ['sort_order' => $sortOrder++])
+                ['code' => $category['code'], 'report_version' => $version],
+                array_merge($category, ['sort_order' => $sortOrder++, 'report_version' => $version])
             );
         }
     }

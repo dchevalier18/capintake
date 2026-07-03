@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\AgencyCapacityMetric;
 use App\Models\CsbgExpenditure;
+use App\Models\CsbgReportSetting;
 use App\Models\FundingSource;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -14,11 +15,29 @@ class CsbgReportService
 {
     protected ?int $programId = null;
 
+    protected ?string $reportVersion = null;
+
     public function forProgram(?int $programId): static
     {
         $this->programId = $programId;
 
         return $this;
+    }
+
+    /**
+     * Restrict taxonomy-driven modules (3B/3C/4A/4B) to a CSBG Annual Report
+     * version. Defaults to the agency's configured version.
+     */
+    public function forVersion(?string $version): static
+    {
+        $this->reportVersion = $version;
+
+        return $this;
+    }
+
+    protected function reportVersion(): string
+    {
+        return $this->reportVersion ??= CsbgReportSetting::current()->report_version ?? '2.1';
     }
 
     protected function endOfDay(string $date): string
@@ -34,6 +53,7 @@ class CsbgReportService
     {
         return (new NpiReportService)
             ->forProgram($this->programId)
+            ->forVersion($this->reportVersion())
             ->generate($startDate, $endDate);
     }
 
@@ -47,6 +67,7 @@ class CsbgReportService
     public function module4SectionB(string $startDate, string $endDate): Collection
     {
         $query = DB::table('csbg_srv_categories as cat')
+            ->where('cat.report_version', $this->reportVersion())
             ->leftJoin('service_srv_category as pivot', 'pivot.csbg_srv_category_id', '=', 'cat.id')
             ->leftJoin('services as s', function ($join) {
                 $join->on('s.id', '=', 'pivot.service_id')->whereNull('s.deleted_at');
@@ -771,6 +792,7 @@ class CsbgReportService
     public function module3SectionB(int $fiscalYear): Collection
     {
         $results = DB::table('cnpi_indicators as ci')
+            ->where('ci.report_version', $this->reportVersion())
             ->leftJoin('cnpi_results as cr', function ($join) use ($fiscalYear) {
                 $join->on('cr.cnpi_indicator_id', '=', 'ci.id')
                     ->where('cr.fiscal_year', $fiscalYear);
@@ -821,6 +843,7 @@ class CsbgReportService
     public function module3SectionC(int $fiscalYear): Collection
     {
         return DB::table('csbg_str_categories as str')
+            ->where('str.report_version', $this->reportVersion())
             ->leftJoin('community_initiative_str_category as pivot', 'pivot.csbg_str_category_id', '=', 'str.id')
             ->leftJoin('community_initiatives as ci', function ($join) use ($fiscalYear) {
                 $join->on('ci.id', '=', 'pivot.community_initiative_id')

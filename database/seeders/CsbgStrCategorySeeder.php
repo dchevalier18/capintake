@@ -129,15 +129,23 @@ class CsbgStrCategorySeeder extends Seeder
             foreach ($codes as [$code, $name]) {
                 $sortOrder++;
                 CsbgStrCategory::updateOrCreate(
-                    ['code' => $code],
+                    ['code' => $code, 'report_version' => '2.1'],
                     [
                         'group_code' => $groupCode,
                         'group_name' => $groupName,
                         'name' => $name,
                         'sort_order' => $sortOrder,
+                        'report_version' => '2.1',
                     ],
                 );
             }
+        }
+
+        foreach (require database_path('seeders/data/str_v3_0.php') as $data) {
+            CsbgStrCategory::updateOrCreate(
+                ['code' => $data['code'], 'report_version' => '3.0'],
+                [...$data, 'report_version' => '3.0'],
+            );
         }
     }
 }

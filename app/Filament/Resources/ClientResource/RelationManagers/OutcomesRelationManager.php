@@ -30,7 +30,7 @@ class OutcomesRelationManager extends RelationManager
             ->components([
                 Select::make('npi_indicator_id')
                     ->label('NPI Indicator')
-                    ->relationship('indicator', 'name')
+                    ->relationship('indicator', 'name', fn ($query) => $query->forVersion())
                     ->getOptionLabelFromRecordUsing(fn ($record): string => "{$record->indicator_code} - {$record->name}")
                     ->required()
                     ->searchable()

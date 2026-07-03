@@ -48,7 +48,7 @@ class FnpiTargets extends Page
 
     protected function loadTargets(): void
     {
-        $indicators = NpiIndicator::whereNull('parent_indicator_id')
+        $indicators = NpiIndicator::forVersion()->whereNull('parent_indicator_id')
             ->with('goal')
             ->orderBy('npi_goal_id')
             ->orderBy('indicator_code')

@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\HasReportVersion;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class CsbgStrCategory extends Model
 {
-    use HasFactory;
+    use HasFactory, HasReportVersion;
 
     protected $fillable = [
         'code',
@@ -19,6 +20,7 @@ class CsbgStrCategory extends Model
         'name',
         'description',
         'sort_order',
+        'report_version',
     ];
 
     protected function casts(): array

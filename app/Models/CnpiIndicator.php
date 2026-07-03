@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\CnpiType;
+use App\Models\Concerns\HasReportVersion;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CnpiIndicator extends Model
 {
-    use HasFactory;
+    use HasFactory, HasReportVersion;
 
     protected $fillable = [
         'domain',
@@ -20,6 +21,7 @@ class CnpiIndicator extends Model
         'description',
         'cnpi_type',
         'sort_order',
+        'report_version',
     ];
 
     protected function casts(): array
