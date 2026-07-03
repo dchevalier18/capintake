@@ -36,9 +36,11 @@ WORKDIR /var/www/html
 # ---------- Dependencies stage ----------
 FROM base AS dependencies
 
-# Copy dependency manifests first for better layer caching
+# Copy dependency manifests first for better layer caching. Autoloader
+# generation is deferred to the build stage: composer.json classmaps
+# app/Overrides/, which doesn't exist in this layer yet.
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+RUN composer install --no-dev --no-interaction --no-scripts --no-autoloader
 
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -49,8 +51,9 @@ FROM dependencies AS build
 # Copy application code
 COPY . .
 
-# Run post-autoload-dump scripts (package discovery, filament upgrade)
-RUN composer run-script post-autoload-dump
+# Generate the optimized autoloader now that app/ exists; this also fires
+# the post-autoload-dump scripts (package discovery, filament upgrade)
+RUN composer dump-autoload --optimize --no-dev
 
 # Build frontend assets
 RUN npm run build
