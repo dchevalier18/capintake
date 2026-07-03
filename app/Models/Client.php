@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Client extends Model
@@ -165,22 +164,16 @@ class Client extends Model
      * Check if client is income-eligible for a given program.
      * Returns the FPL percentage or null if FPL data is missing.
      */
-    public function fplPercent(int $year = null): ?int
+    public function fplPercent(?int $year = null): ?int
     {
-        $year ??= now()->year;
-        $householdSize = $this->household->household_size;
-
-        $fpl = FederalPovertyLevel::where('year', $year)
-            ->where('household_size', min($householdSize, 8))
-            ->where('region', 'continental')
-            ->first();
-
-        if (! $fpl) {
+        if (! $this->household) {
             return null;
         }
 
-        $totalIncome = $this->household->totalAnnualIncome();
-
-        return (int) round(($totalIncome / $fpl->poverty_guideline) * 100);
+        return FederalPovertyLevel::fplPercent(
+            $this->household->totalAnnualIncome(),
+            $this->household->household_size,
+            $year,
+        );
     }
 }
