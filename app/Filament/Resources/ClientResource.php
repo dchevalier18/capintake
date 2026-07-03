@@ -665,6 +665,7 @@ class ClientResource extends Resource
             RelationManagers\NonCashBenefitsRelationManager::class,
             RelationManagers\OutcomesRelationManager::class,
             RelationManagers\CasePlansRelationManager::class,
+            RelationManagers\SelfSufficiencyAssessmentsRelationManager::class,
             RelationManagers\ReferralsRelationManager::class,
             RelationManagers\FollowUpsRelationManager::class,
         ];
