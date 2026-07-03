@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\Program;
-use App\Models\Service;
 use Illuminate\Database\Seeder;
 
 class ProgramSeeder extends Seeder

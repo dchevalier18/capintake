@@ -7,18 +7,16 @@ namespace App\Filament\Pages;
 use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\User;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Pages\Page;
-use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Infolist;
 use Illuminate\Database\Eloquent\Builder;
 
 class AuditLogViewer extends Page implements HasTable
@@ -105,7 +103,7 @@ class AuditLogViewer extends Page implements HasTable
                             }
 
                             return implode(', ', array_slice($changes, 0, 3))
-                                . (count($changes) > 3 ? ' +' . (count($changes) - 3) . ' more' : '');
+                                .(count($changes) > 3 ? ' +'.(count($changes) - 3).' more' : '');
                         }
 
                         return '';
@@ -161,8 +159,8 @@ class AuditLogViewer extends Page implements HasTable
                     }),
             ])
             ->actions([
-                \Filament\Actions\ViewAction::make()
-                    ->modalHeading(fn (AuditLog $record): string => class_basename($record->auditable_type) . " #{$record->auditable_id} — " . ucfirst($record->action))
+                ViewAction::make()
+                    ->modalHeading(fn (AuditLog $record): string => class_basename($record->auditable_type)." #{$record->auditable_id} — ".ucfirst($record->action))
                     ->infolist(function (AuditLog $record): array {
                         $entries = [
                             TextEntry::make('created_at')
@@ -189,7 +187,7 @@ class AuditLogViewer extends Page implements HasTable
                             $entries[] = TextEntry::make('old_values_display')
                                 ->label('Previous Values')
                                 ->state(fn () => collect($record->old_values)
-                                    ->map(fn ($value, $key) => "{$key}: " . $this->formatAuditValue($value))
+                                    ->map(fn ($value, $key) => "{$key}: ".$this->formatAuditValue($value))
                                     ->implode("\n"))
                                 ->markdown();
                         }
@@ -198,7 +196,7 @@ class AuditLogViewer extends Page implements HasTable
                             $entries[] = TextEntry::make('new_values_display')
                                 ->label('New Values')
                                 ->state(fn () => collect($record->new_values)
-                                    ->map(fn ($value, $key) => "{$key}: " . $this->formatAuditValue($value))
+                                    ->map(fn ($value, $key) => "{$key}: ".$this->formatAuditValue($value))
                                     ->implode("\n"))
                                 ->markdown();
                         }

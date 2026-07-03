@@ -28,7 +28,7 @@ class NpiReportService
      */
     protected function endOfDay(string $date): string
     {
-        return str_contains($date, ' ') ? $date : $date . ' 23:59:59';
+        return str_contains($date, ' ') ? $date : $date.' 23:59:59';
     }
 
     /**
@@ -363,18 +363,18 @@ class NpiReportService
             'Total Value ($)',
         ];
         foreach ($races as $r) {
-            $header[] = 'Race: ' . ($raceOptions[$r] ?? $r);
+            $header[] = 'Race: '.($raceOptions[$r] ?? $r);
         }
         foreach ($genders as $g) {
-            $header[] = 'Gender: ' . ($genderOptions[$g] ?? $g);
+            $header[] = 'Gender: '.($genderOptions[$g] ?? $g);
         }
         foreach ($ages as $a) {
-            $header[] = 'Age: ' . $a;
+            $header[] = 'Age: '.$a;
         }
         $rows[] = $header;
 
         foreach ($report as $goal) {
-            $goalRow = ['Goal ' . $goal['goal_number'], $goal['goal_name'], $goal['goal_total_clients'], '', '', '', '', '', ''];
+            $goalRow = ['Goal '.$goal['goal_number'], $goal['goal_name'], $goal['goal_total_clients'], '', '', '', '', '', ''];
             $goalRow = array_merge($goalRow, array_fill(0, count($races) + count($genders) + count($ages), ''));
             $rows[] = $goalRow;
 

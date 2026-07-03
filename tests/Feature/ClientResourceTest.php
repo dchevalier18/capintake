@@ -12,11 +12,10 @@ use App\Models\Client;
 use App\Models\Enrollment;
 use App\Models\FederalPovertyLevel;
 use App\Models\Household;
-use App\Models\IncomeRecord;
 use App\Models\Program;
 use App\Models\Service;
-use App\Models\ServiceRecord;
 use App\Models\User;
+use Database\Seeders\LookupSeeder;
 use Filament\Actions\DeleteAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -24,7 +23,7 @@ use Livewire\Livewire;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\LookupSeeder::class);
+    $this->seed(LookupSeeder::class);
     $this->admin = User::factory()->admin()->create();
     $this->supervisor = User::factory()->supervisor()->create();
     $this->caseworker = User::factory()->caseworker()->create();

@@ -78,7 +78,7 @@ class TrendAnalysisService
 
         // Get outcome counts
         $indicatorIds = $rows->pluck('indicator_id')->toArray();
-        $npiService = new NpiReportService();
+        $npiService = new NpiReportService;
         $outcomeCounts = $npiService->outcomeCountsByIndicator($dateRange[0], $dateRange[1], $indicatorIds);
 
         // Get served counts
@@ -115,10 +115,10 @@ class TrendAnalysisService
         $period = $settings?->reporting_period ?? 'oct_sep';
 
         return match ($period) {
-            'oct_sep' => [($fiscalYear - 1) . '-10-01', $fiscalYear . '-09-30'],
-            'jul_jun' => [($fiscalYear - 1) . '-07-01', $fiscalYear . '-06-30'],
-            'jan_dec' => [$fiscalYear . '-01-01', $fiscalYear . '-12-31'],
-            default => [($fiscalYear - 1) . '-10-01', $fiscalYear . '-09-30'],
+            'oct_sep' => [($fiscalYear - 1).'-10-01', $fiscalYear.'-09-30'],
+            'jul_jun' => [($fiscalYear - 1).'-07-01', $fiscalYear.'-06-30'],
+            'jan_dec' => [$fiscalYear.'-01-01', $fiscalYear.'-12-31'],
+            default => [($fiscalYear - 1).'-10-01', $fiscalYear.'-09-30'],
         };
     }
 

@@ -9,13 +9,8 @@ use App\Models\AgencySetting;
 use App\Models\CommunityInitiative;
 use App\Models\CsbgReportSetting;
 use App\Services\CsbgReportService;
-use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Tabs;
-use Filament\Schemas\Components\Tabs\Tab;
-use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Cache;
 
 class CsbgAnnualReport extends Page
@@ -75,7 +70,7 @@ class CsbgAnnualReport extends Page
     {
         [$startDate, $endDate] = $this->getDateRange();
 
-        $service = new CsbgReportService();
+        $service = new CsbgReportService;
 
         $data = [
             'module4a' => $service->module4SectionA($startDate, $endDate)->toArray(),
@@ -123,10 +118,10 @@ class CsbgAnnualReport extends Page
         $period = $settings?->reporting_period ?? 'oct_sep';
 
         return match ($period) {
-            'oct_sep' => [($this->fiscalYear - 1) . '-10-01', $this->fiscalYear . '-09-30'],
-            'jul_jun' => [($this->fiscalYear - 1) . '-07-01', $this->fiscalYear . '-06-30'],
-            'jan_dec' => [$this->fiscalYear . '-01-01', $this->fiscalYear . '-12-31'],
-            default => [($this->fiscalYear - 1) . '-10-01', $this->fiscalYear . '-09-30'],
+            'oct_sep' => [($this->fiscalYear - 1).'-10-01', $this->fiscalYear.'-09-30'],
+            'jul_jun' => [($this->fiscalYear - 1).'-07-01', $this->fiscalYear.'-06-30'],
+            'jan_dec' => [$this->fiscalYear.'-01-01', $this->fiscalYear.'-12-31'],
+            default => [($this->fiscalYear - 1).'-10-01', $this->fiscalYear.'-09-30'],
         };
     }
 

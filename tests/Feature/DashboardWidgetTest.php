@@ -14,6 +14,7 @@ use App\Models\Program;
 use App\Models\Service;
 use App\Models\ServiceRecord;
 use App\Models\User;
+use Database\Seeders\ProgramSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -230,7 +231,7 @@ it('renders the program breakdown widget for an authenticated admin', function (
 
 it('returns correct chart data for program breakdown', function () {
     $this->actingAs(User::factory()->admin()->create());
-    $this->seed(\Database\Seeders\ProgramSeeder::class);
+    $this->seed(ProgramSeeder::class);
 
     $caseworker = User::factory()->caseworker()->create();
 

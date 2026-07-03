@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Models\LookupCategory;
 use App\Models\LookupValue;
+use App\Models\User;
+use App\Policies\LookupCategoryPolicy;
 use App\Services\Lookup;
 use Database\Seeders\LookupSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -109,8 +111,8 @@ it('system lookup categories cannot be deleted via policy', function () {
 
     expect($category->is_system)->toBeTrue();
 
-    $admin = \App\Models\User::factory()->admin()->create();
-    $policy = new \App\Policies\LookupCategoryPolicy();
+    $admin = User::factory()->admin()->create();
+    $policy = new LookupCategoryPolicy;
 
     expect($policy->delete($admin, $category))->toBeFalse();
 });
@@ -122,8 +124,8 @@ it('non-system categories can be deleted', function () {
         'is_system' => false,
     ]);
 
-    $admin = \App\Models\User::factory()->admin()->create();
-    $policy = new \App\Policies\LookupCategoryPolicy();
+    $admin = User::factory()->admin()->create();
+    $policy = new LookupCategoryPolicy;
 
     expect($policy->delete($admin, $category))->toBeTrue();
 });

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\FnpiTarget;
 use App\Models\NpiIndicator;
 use Database\Seeders\NpiSeeder;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -40,7 +41,7 @@ it('enforces unique constraint on indicator + fiscal year', function () {
         'npi_indicator_id' => $indicator->id,
         'fiscal_year' => 2025,
         'target_count' => 75,
-    ]))->toThrow(\Illuminate\Database\UniqueConstraintViolationException::class);
+    ]))->toThrow(UniqueConstraintViolationException::class);
 });
 
 it('allows same indicator in different fiscal years', function () {

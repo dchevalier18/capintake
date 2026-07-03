@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Client;
 use App\Models\Enrollment;
+use App\Models\Program;
 use App\Models\Service;
 use App\Models\ServiceRecord;
 use App\Models\User;
@@ -57,10 +58,10 @@ it('counts unduplicated clients correctly — same client 5 services = 1', funct
 
     $client = Client::factory()->create();
     for ($i = 0; $i < 5; $i++) {
-        createServiceForCode('CSBG-VITA', $client, '2025-06-' . str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT));
+        createServiceForCode('CSBG-VITA', $client, '2025-06-'.str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT));
     }
 
-    $report = (new CsbgReportService())->module4SectionA('2025-01-01', '2025-12-31');
+    $report = (new CsbgReportService)->module4SectionA('2025-01-01', '2025-12-31');
     $goal3 = $report->firstWhere('goal_number', 3);
     $indicator = collect($goal3['indicators'])->firstWhere('indicator_code', 'FNPI-3a');
 
@@ -79,7 +80,7 @@ it('counts multiple clients correctly', function () {
     createServiceForCode('CSBG-VITA', $clientB, '2025-06-01');
     createServiceForCode('CSBG-VITA', $clientC, '2025-06-01');
 
-    $report = (new CsbgReportService())->module4SectionA('2025-01-01', '2025-12-31');
+    $report = (new CsbgReportService)->module4SectionA('2025-01-01', '2025-12-31');
     $goal3 = $report->firstWhere('goal_number', 3);
     $indicator = collect($goal3['indicators'])->firstWhere('indicator_code', 'FNPI-3a');
 
@@ -97,7 +98,7 @@ it('excludes services outside the reporting period', function () {
     createServiceForCode('CSBG-VITA', $client, '2025-06-01');
     createServiceForCode('CSBG-VITA', $client, '2024-01-01'); // outside period
 
-    $report = (new CsbgReportService())->module4SectionA('2025-01-01', '2025-12-31');
+    $report = (new CsbgReportService)->module4SectionA('2025-01-01', '2025-12-31');
     $goal3 = $report->firstWhere('goal_number', 3);
     $indicator = collect($goal3['indicators'])->firstWhere('indicator_code', 'FNPI-3a');
 
@@ -118,7 +119,7 @@ it('demographic breakdowns sum to the total', function () {
     createServiceForCode('CSBG-VITA', $clientA, '2025-06-01');
     createServiceForCode('CSBG-VITA', $clientB, '2025-06-01');
 
-    $report = (new CsbgReportService())->module4SectionA('2025-01-01', '2025-12-31');
+    $report = (new CsbgReportService)->module4SectionA('2025-01-01', '2025-12-31');
     $goal3 = $report->firstWhere('goal_number', 3);
     $indicator = collect($goal3['indicators'])->firstWhere('indicator_code', 'FNPI-3a');
 
@@ -140,9 +141,9 @@ it('filters by program when specified', function () {
     createServiceForCode('CSBG-VITA', $client, '2025-06-01');
     createServiceForCode('EMRG-FOOD', $client, '2025-06-01');
 
-    $csbgProgram = \App\Models\Program::where('code', 'CSBG')->first();
+    $csbgProgram = Program::where('code', 'CSBG')->first();
 
-    $report = (new CsbgReportService())
+    $report = (new CsbgReportService)
         ->forProgram($csbgProgram->id)
         ->module4SectionA('2025-01-01', '2025-12-31');
 

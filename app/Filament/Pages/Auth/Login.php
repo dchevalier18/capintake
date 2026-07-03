@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages\Auth;
 
-use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
 use Filament\Auth\Http\Responses\Contracts\LoginResponse;
 use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
@@ -26,7 +25,7 @@ class Login extends \Filament\Auth\Pages\Login
         $email = $data['email'] ?? '';
 
         // Rate limit by email+IP combination: 5 attempts per 60 seconds
-        $key = 'login-attempt:' . sha1($email . '|' . request()->ip());
+        $key = 'login-attempt:'.sha1($email.'|'.request()->ip());
 
         if (RateLimiter::tooManyAttempts($key, 5)) {
             $seconds = RateLimiter::availableIn($key);
@@ -47,7 +46,7 @@ class Login extends \Filament\Auth\Pages\Login
 
         // Also rate limit by IP alone: 10 attempts per 60 seconds
         // (prevents credential stuffing across multiple emails)
-        $ipKey = 'login-attempt-ip:' . request()->ip();
+        $ipKey = 'login-attempt-ip:'.request()->ip();
 
         if (RateLimiter::tooManyAttempts($ipKey, 10)) {
             $seconds = RateLimiter::availableIn($ipKey);

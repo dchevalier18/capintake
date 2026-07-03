@@ -9,6 +9,7 @@ use App\Models\FederalPovertyLevel;
 use Filament\Resources\Resource;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 
 class FederalPovertyLevelResource extends Resource
@@ -53,7 +54,7 @@ class FederalPovertyLevelResource extends Resource
                 TextColumn::make('poverty_guideline')
                     ->label('Guideline Amount')
                     ->money('USD', divideBy: 100)
-                    ->formatStateUsing(fn (int $state): string => '$' . number_format($state))
+                    ->formatStateUsing(fn (int $state): string => '$'.number_format($state))
                     ->sortable(),
             ])
             ->filters([
@@ -72,7 +73,7 @@ class FederalPovertyLevelResource extends Resource
                     ]),
             ])
             ->groups([
-                \Filament\Tables\Grouping\Group::make('year')
+                Group::make('year')
                     ->collapsible(),
             ])
             ->defaultGroup('year')

@@ -17,7 +17,7 @@ class NpiReportCsvExport
 
     public function download(string $filename): StreamedResponse
     {
-        $service = new NpiReportService();
+        $service = new NpiReportService;
 
         if ($this->programId) {
             $service->forProgram($this->programId);
@@ -27,8 +27,8 @@ class NpiReportCsvExport
 
         $titleRows = [
             ['CSBG National Performance Indicators Report'],
-            ['Reporting Period: ' . $this->startDate . ' to ' . $this->endDate],
-            ['Generated: ' . now()->format('m/d/Y h:i A')],
+            ['Reporting Period: '.$this->startDate.' to '.$this->endDate],
+            ['Generated: '.now()->format('m/d/Y h:i A')],
             [],
         ];
 

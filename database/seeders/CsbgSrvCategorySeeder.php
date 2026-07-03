@@ -185,7 +185,7 @@ class CsbgSrvCategorySeeder extends Seeder
     private static function group(string $domain, string $groupName, array $items): array
     {
         return array_map(fn (array $item) => [
-            'code' => 'SRV ' . $item[0],
+            'code' => 'SRV '.$item[0],
             'domain' => $domain,
             'group_name' => $groupName,
             'name' => $item[1],

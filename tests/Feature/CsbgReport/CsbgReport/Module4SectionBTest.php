@@ -49,7 +49,7 @@ function createSrvServiceRecord(string $serviceCode, Client $client, string $dat
 }
 
 it('returns all SRV categories grouped by domain', function () {
-    $report = (new CsbgReportService())->module4SectionB('2025-01-01', '2025-12-31');
+    $report = (new CsbgReportService)->module4SectionB('2025-01-01', '2025-12-31');
 
     expect($report)->toHaveCount(7); // 7 domains
 
@@ -61,7 +61,7 @@ it('returns all SRV categories grouped by domain', function () {
 });
 
 it('shows zero for unmapped SRV categories', function () {
-    $report = (new CsbgReportService())->module4SectionB('2025-01-01', '2025-12-31');
+    $report = (new CsbgReportService)->module4SectionB('2025-01-01', '2025-12-31');
 
     // Without any mappings, all categories should show 0
     $employment = $report->firstWhere('domain', 'employment');
@@ -80,7 +80,7 @@ it('counts unduplicated clients for mapped SRV categories', function () {
     createSrvServiceRecord('CSBG-ERT', $client, '2025-06-01');
     createSrvServiceRecord('CSBG-ERT', $client, '2025-06-15'); // same client, 2 services
 
-    $report = (new CsbgReportService())->module4SectionB('2025-01-01', '2025-12-31');
+    $report = (new CsbgReportService)->module4SectionB('2025-01-01', '2025-12-31');
 
     $employment = $report->firstWhere('domain', 'employment');
     $srv1f = collect($employment['categories'])->firstWhere('code', 'SRV 1f');
@@ -96,7 +96,7 @@ it('excludes services outside the date range', function () {
     createSrvServiceRecord('CSBG-ERT', $client, '2025-06-01');
     createSrvServiceRecord('CSBG-ERT', $client, '2024-01-01'); // outside period
 
-    $report = (new CsbgReportService())->module4SectionB('2025-01-01', '2025-12-31');
+    $report = (new CsbgReportService)->module4SectionB('2025-01-01', '2025-12-31');
 
     $employment = $report->firstWhere('domain', 'employment');
     $srv1f = collect($employment['categories'])->firstWhere('code', 'SRV 1f');

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Widgets;
 
-use App\Enums\IntakeStatus;
 use App\Filament\Pages\IntakeWizard;
+use App\Filament\Resources\ClientResource;
 use App\Filament\Resources\ServiceRecordResource;
 use App\Models\Client;
 use Filament\Widgets\Widget;
@@ -66,6 +66,6 @@ class QuickActions extends Widget
 
     public function getClientEditUrl(int $clientId): string
     {
-        return \App\Filament\Resources\ClientResource::getUrl('edit', ['record' => $clientId]);
+        return ClientResource::getUrl('edit', ['record' => $clientId]);
     }
 }

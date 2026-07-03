@@ -6,7 +6,6 @@ namespace App\Filament\Pages;
 
 use App\Enums\UserRole;
 use App\Models\FnpiTarget;
-use App\Models\NpiGoal;
 use App\Models\NpiIndicator;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;

@@ -8,6 +8,7 @@ use App\Filament\Resources\FederalPovertyLevelResource\Pages\ListFederalPovertyL
 use App\Filament\Resources\LookupCategoryResource\Pages\ListLookupCategories;
 use App\Models\User;
 use Database\Seeders\LookupSeeder;
+use Database\Seeders\NpiSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -25,7 +26,7 @@ beforeEach(function () {
 // =========================================================================
 
 it('admin can access the NPI report page', function () {
-    $this->seed(\Database\Seeders\NpiSeeder::class);
+    $this->seed(NpiSeeder::class);
 
     $this->actingAs($this->admin);
 
@@ -34,7 +35,7 @@ it('admin can access the NPI report page', function () {
 });
 
 it('supervisor can access the NPI report page', function () {
-    $this->seed(\Database\Seeders\NpiSeeder::class);
+    $this->seed(NpiSeeder::class);
 
     $this->actingAs($this->supervisor);
 

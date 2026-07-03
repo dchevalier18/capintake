@@ -26,13 +26,13 @@ class CsbgExportController extends Controller
         $period = $settings?->reporting_period ?? 'oct_sep';
 
         [$startDate, $endDate] = match ($period) {
-            'oct_sep' => [($year - 1) . '-10-01', $year . '-09-30'],
-            'jul_jun' => [($year - 1) . '-07-01', $year . '-06-30'],
-            'jan_dec' => [$year . '-01-01', $year . '-12-31'],
-            default => [($year - 1) . '-10-01', $year . '-09-30'],
+            'oct_sep' => [($year - 1).'-10-01', $year.'-09-30'],
+            'jul_jun' => [($year - 1).'-07-01', $year.'-06-30'],
+            'jan_dec' => [$year.'-01-01', $year.'-12-31'],
+            default => [($year - 1).'-10-01', $year.'-09-30'],
         };
 
-        $service = new NpiReportService();
+        $service = new NpiReportService;
         $rows = $service->toFlatRows($startDate, $endDate);
 
         $filename = "csbg-fnpi-report-ffy{$year}.csv";

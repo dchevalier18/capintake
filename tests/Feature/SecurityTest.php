@@ -2,16 +2,22 @@
 
 declare(strict_types=1);
 
+use App\Enums\IncomeFrequency;
+use App\Filament\Pages\Auth\Login;
 use App\Models\AgencySetting;
 use App\Models\Client;
 use App\Models\Household;
 use App\Models\HouseholdMember;
 use App\Models\IncomeRecord;
 use App\Models\User;
+use Filament\Facades\Filament;
+use Filament\Http\Middleware\AuthenticateSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 
 uses(RefreshDatabase::class);
 
@@ -92,7 +98,7 @@ it('encrypts income record amount at rest', function () {
 it('encrypts income record annual_amount at rest', function () {
     $record = IncomeRecord::factory()->create([
         'amount' => 1000.00,
-        'frequency' => \App\Enums\IncomeFrequency::Monthly,
+        'frequency' => IncomeFrequency::Monthly,
     ]);
 
     $raw = DB::table('income_records')->where('id', $record->id)->value('annual_amount');
@@ -183,18 +189,18 @@ it('login throttle middleware is configured', function () {
     // Filament's login page uses its built-in WithRateLimiting trait
     // which limits to 5 attempts per minute. Verify the session-based
     // auth middleware stack is in place (which enables throttling).
-    $panel = \Filament\Facades\Filament::getDefaultPanel();
+    $panel = Filament::getDefaultPanel();
     $middleware = $panel->getMiddleware();
 
     // AuthenticateSession is required for Filament's rate limiting to work
-    expect($middleware)->toContain(\Filament\Http\Middleware\AuthenticateSession::class);
+    expect($middleware)->toContain(AuthenticateSession::class);
 });
 
 it('custom login page with rate limiting is registered', function () {
-    $panel = \Filament\Facades\Filament::getDefaultPanel();
+    $panel = Filament::getDefaultPanel();
 
     // The panel should use our custom Login class
-    expect($panel->getLoginRouteAction())->toBe(\App\Filament\Pages\Auth\Login::class);
+    expect($panel->getLoginRouteAction())->toBe(Login::class);
 });
 
 it('login rate limiter blocks after 5 failed attempts', function () {
@@ -202,19 +208,19 @@ it('login rate limiter blocks after 5 failed attempts', function () {
     $ip = '127.0.0.1';
 
     // Clear any existing rate limit state
-    $key = 'login-attempt:' . sha1($email . '|' . $ip);
-    \Illuminate\Support\Facades\RateLimiter::clear($key);
+    $key = 'login-attempt:'.sha1($email.'|'.$ip);
+    RateLimiter::clear($key);
 
     // Simulate 5 failed attempts by hitting the rate limiter
     for ($i = 0; $i < 5; $i++) {
-        \Illuminate\Support\Facades\RateLimiter::hit($key, 60);
+        RateLimiter::hit($key, 60);
     }
 
     // The 6th attempt should be blocked
-    expect(\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($key, 5))->toBeTrue();
+    expect(RateLimiter::tooManyAttempts($key, 5))->toBeTrue();
 
     // Clean up
-    \Illuminate\Support\Facades\RateLimiter::clear($key);
+    RateLimiter::clear($key);
 });
 
 // =========================================================================
@@ -222,10 +228,10 @@ it('login rate limiter blocks after 5 failed attempts', function () {
 // =========================================================================
 
 it('password defaults enforce min 10 chars, mixed case, numbers, and symbols', function () {
-    $rule = \Illuminate\Validation\Rules\Password::default();
+    $rule = Password::default();
 
     // Weak password fails
-    $validator = \Illuminate\Support\Facades\Validator::make(
+    $validator = Validator::make(
         ['password' => 'short'],
         ['password' => $rule]
     );
@@ -233,9 +239,9 @@ it('password defaults enforce min 10 chars, mixed case, numbers, and symbols', f
 });
 
 it('password without symbols fails validation', function () {
-    $rule = \Illuminate\Validation\Rules\Password::default();
+    $rule = Password::default();
 
-    $validator = \Illuminate\Support\Facades\Validator::make(
+    $validator = Validator::make(
         ['password' => 'SecurePass1'],
         ['password' => $rule]
     );
@@ -244,9 +250,9 @@ it('password without symbols fails validation', function () {
 });
 
 it('strong password with symbols passes validation', function () {
-    $rule = \Illuminate\Validation\Rules\Password::default();
+    $rule = Password::default();
 
-    $validator = \Illuminate\Support\Facades\Validator::make(
+    $validator = Validator::make(
         ['password' => 'SecurePass1!'],
         ['password' => $rule]
     );
@@ -255,9 +261,9 @@ it('strong password with symbols passes validation', function () {
 });
 
 it('password without uppercase fails validation', function () {
-    $rule = \Illuminate\Validation\Rules\Password::default();
+    $rule = Password::default();
 
-    $validator = \Illuminate\Support\Facades\Validator::make(
+    $validator = Validator::make(
         ['password' => 'alllowercase1!'],
         ['password' => $rule]
     );
@@ -266,9 +272,9 @@ it('password without uppercase fails validation', function () {
 });
 
 it('password without number fails validation', function () {
-    $rule = \Illuminate\Validation\Rules\Password::default();
+    $rule = Password::default();
 
-    $validator = \Illuminate\Support\Facades\Validator::make(
+    $validator = Validator::make(
         ['password' => 'NoNumberHere!'],
         ['password' => $rule]
     );
@@ -319,13 +325,13 @@ it('client total annual income works with encrypted amounts', function () {
     IncomeRecord::factory()->create([
         'client_id' => $client->id,
         'amount' => 2000.00,
-        'frequency' => \App\Enums\IncomeFrequency::Monthly,
+        'frequency' => IncomeFrequency::Monthly,
     ]);
 
     IncomeRecord::factory()->create([
         'client_id' => $client->id,
         'amount' => 500.00,
-        'frequency' => \App\Enums\IncomeFrequency::Weekly,
+        'frequency' => IncomeFrequency::Weekly,
     ]);
 
     // Monthly: 2000 * 12 = 24000, Weekly: 500 * 52 = 26000
@@ -339,7 +345,7 @@ it('household total annual income works with encrypted amounts', function () {
     IncomeRecord::factory()->create([
         'client_id' => $client->id,
         'amount' => 1000.00,
-        'frequency' => \App\Enums\IncomeFrequency::Monthly,
+        'frequency' => IncomeFrequency::Monthly,
     ]);
 
     expect($household->totalAnnualIncome())->toBe(12000.0);

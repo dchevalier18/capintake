@@ -15,14 +15,17 @@ use App\Models\IncomeRecord;
 use App\Models\Program;
 use App\Models\User;
 use Database\Seeders\FederalPovertyLevelSeeder;
+use Database\Seeders\LookupSeeder;
 use Database\Seeders\ProgramSeeder;
+use Filament\Support\Exceptions\Halt;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->seed(\Database\Seeders\LookupSeeder::class);
+    $this->seed(LookupSeeder::class);
     $this->admin = User::factory()->admin()->create();
     $this->caseworker = User::factory()->caseworker()->create();
 });
@@ -246,7 +249,7 @@ it('detects duplicate clients by name and date of birth', function () {
 
     try {
         $reflection->invoke($wizard);
-    } catch (\Filament\Support\Exceptions\Halt) {
+    } catch (Halt) {
         // Expected when duplicates found without acknowledgement
     }
 
@@ -294,7 +297,7 @@ it('detects duplicate clients by SSN last four', function () {
 
     try {
         $reflection->invoke($wizard);
-    } catch (\Filament\Support\Exceptions\Halt) {
+    } catch (Halt) {
         // Expected
     }
 
@@ -689,7 +692,7 @@ it('does not crash when submit is called without a client', function () {
     // then checks clientId. Either way, the client stays as draft.
     try {
         $component->call('submit');
-    } catch (\Illuminate\Validation\ValidationException) {
+    } catch (ValidationException) {
         // Expected if form validation fails before reaching the clientId check
     }
 

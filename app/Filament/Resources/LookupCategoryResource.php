@@ -6,13 +6,13 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\LookupCategoryResource\Pages;
 use App\Models\LookupCategory;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Actions\EditAction;
 use Filament\Tables\Columns\BooleanColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -97,7 +97,7 @@ class LookupCategoryResource extends Resource
                                 fn ($action) => $action->requiresConfirmation()
                                     ->hidden(fn (array $arguments, Repeater $component): bool => ($component->getItemState($arguments['item'])['is_system'] ?? false) === true)
                             )
-                            ->itemLabel(fn (array $state): ?string => ($state['label'] ?? '') . (($state['is_active'] ?? true) ? '' : ' (inactive)'))
+                            ->itemLabel(fn (array $state): ?string => ($state['label'] ?? '').(($state['is_active'] ?? true) ? '' : ' (inactive)'))
                             ->columnSpanFull(),
                     ]),
             ]);

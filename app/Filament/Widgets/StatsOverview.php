@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Filament\Widgets;
 
 use App\Enums\EnrollmentStatus;
-use App\Enums\IntakeStatus;
 use App\Models\Client;
 use App\Models\Enrollment;
 use App\Models\Program;
@@ -60,7 +59,7 @@ class StatsOverview extends StatsOverviewWidget
 
         return [
             Stat::make('Clients Served', $clientsThisMonth)
-                ->description($clientsThisYear . ' this year')
+                ->description($clientsThisYear.' this year')
                 ->descriptionIcon('heroicon-m-calendar')
                 ->descriptionColor('gray')
                 ->color('primary')
@@ -69,8 +68,8 @@ class StatsOverview extends StatsOverviewWidget
             Stat::make('New Intakes This Week', $intakesThisWeek)
                 ->description(
                     $intakeTrend === null
-                        ? ($intakesThisWeek > 0 ? $intakesThisWeek . ' new this week' : 'No intakes yet')
-                        : ($intakeTrend >= 0 ? $intakeTrend . '% increase' : abs($intakeTrend) . '% decrease')
+                        ? ($intakesThisWeek > 0 ? $intakesThisWeek.' new this week' : 'No intakes yet')
+                        : ($intakeTrend >= 0 ? $intakeTrend.'% increase' : abs($intakeTrend).'% decrease')
                 )
                 ->descriptionIcon(
                     $intakeTrend === null
@@ -123,6 +122,6 @@ class StatsOverview extends StatsOverviewWidget
             return 'No active programs';
         }
 
-        return 'Top: ' . $top->name . ' (' . $top->enrollments_count . ')';
+        return 'Top: '.$top->name.' ('.$top->enrollments_count.')';
     }
 }

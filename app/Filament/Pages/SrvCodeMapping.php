@@ -62,7 +62,7 @@ class SrvCodeMapping extends Page
             ->orderBy('code')
             ->get()
             ->mapWithKeys(fn (Service $s) => [
-                $s->id => $s->program->code . ' — ' . $s->name . ' (' . $s->code . ')',
+                $s->id => $s->program->code.' — '.$s->name.' ('.$s->code.')',
             ])
             ->toArray();
     }

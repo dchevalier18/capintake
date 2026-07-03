@@ -16,7 +16,7 @@ class CnpiIndicatorFactory extends Factory
     {
         return [
             'domain' => fake()->randomElement(['employment', 'education', 'income_asset', 'housing', 'health_social', 'civic_engagement']),
-            'indicator_code' => 'CNPI-' . fake()->unique()->numerify('##'),
+            'indicator_code' => 'CNPI-'.fake()->unique()->numerify('##'),
             'name' => fake()->sentence(4),
             'cnpi_type' => fake()->randomElement(CnpiType::cases()),
             'sort_order' => fake()->numberBetween(1, 100),
