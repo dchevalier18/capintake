@@ -49,8 +49,13 @@ server {
         return 404;
     }
 
-    # Cache static assets
+    # Cache static assets. try_files falls through to index.php so paths that
+    # only *look* static but are served by PHP still work — notably Livewire's
+    # core script at /livewire/livewire.min.js (it bundles Alpine). Without
+    # this, that .js is treated as a missing file, Alpine never boots, and
+    # every Filament page renders with its body stuck behind x-cloak (blank).
     location ~* \.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        try_files $uri /index.php?$query_string;
         expires 30d;
         add_header Cache-Control "public, immutable";
         access_log off;
