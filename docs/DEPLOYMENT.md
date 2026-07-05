@@ -496,6 +496,8 @@ APP_URL=https://your-domain.com   # Your public URL, including https://
 
 **Important:** `APP_KEY` is used to encrypt all data marked with the `encrypted` cast (SSN fields, etc.). Back up this key securely. If you lose it, encrypted data becomes unrecoverable.
 
+**On Render:** the Blueprint sets `APP_KEY` via `generateValue`, which produces a bare random string. A valid Laravel key must be a `base64:`-prefixed 32-byte value, so the container entrypoint automatically normalizes Render's value into a valid, stable key on every boot — no action needed. To supply your own key instead, set `APP_KEY` in the Render dashboard to the output of `php artisan key:generate --show` (it already includes the `base64:` prefix and is left untouched by the entrypoint).
+
 ### Database
 
 ```ini

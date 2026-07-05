@@ -10,6 +10,34 @@ if [ -n "$RENDER_EXTERNAL_URL" ] && [ -z "$APP_URL" ]; then
     echo "==> APP_URL set from RENDER_EXTERNAL_URL: $APP_URL"
 fi
 
+# Normalize APP_KEY into a valid, STABLE Laravel key. Laravel only
+# base64-decodes a key that begins with "base64:"; otherwise it uses the
+# string as raw AES-256-CBC key bytes. Render's `generateValue: true`
+# injects a bare random string (no prefix, not 32 raw bytes), so cookie/
+# session encryption throws "Unsupported cipher or incorrect key length"
+# and every web route 500s while /up (no session) still passes its health
+# check. The derivation below is deterministic, so the key stays identical
+# across restarts/deploys and encrypted PII (SSN/DOB/income) remains
+# decryptable. Runs before config:cache so the cached config captures it.
+if [ -n "$APP_KEY" ]; then
+    case "$APP_KEY" in
+        base64:*)
+            : # already a Laravel key (user-supplied) — leave it as-is
+            ;;
+        *)
+            if php -r '$d = base64_decode(getenv("APP_KEY"), true); exit($d !== false && strlen($d) === 32 ? 0 : 1);'; then
+                # Valid base64 of 32 bytes — just add the prefix Laravel needs.
+                export APP_KEY="base64:$APP_KEY"
+            else
+                # Anything else (e.g. Render's bare value) — derive a stable
+                # 32-byte key from it so the format is always valid.
+                export APP_KEY="base64:$(php -r 'echo base64_encode(hash("sha256", getenv("APP_KEY"), true));')"
+            fi
+            echo "==> APP_KEY normalized to a valid base64 Laravel key"
+            ;;
+    esac
+fi
+
 # Render the standalone nginx config for the container's HTTP port.
 # Only ${PORT} is substituted so nginx's own $variables are untouched.
 if [ -f /etc/nginx/templates/capintake.conf.template ]; then
