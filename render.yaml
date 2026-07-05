@@ -19,6 +19,12 @@ services:
         value: production
       - key: APP_DEBUG
         value: "false"
+      # Render's generateValue injects a bare random string. Laravel needs a
+      # "base64:"-prefixed 32-byte key, so the container entrypoint normalizes
+      # this value into a valid, stable key on boot (see docker/entrypoint.sh).
+      # Keep generateValue (the secret stays constant across deploys); do NOT
+      # switch to a container-generated key — Render's filesystem is ephemeral,
+      # so that would change every restart and strand encrypted PII.
       - key: APP_KEY
         generateValue: true
       # APP_URL is derived from Render's RENDER_EXTERNAL_URL in the
